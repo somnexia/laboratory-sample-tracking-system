@@ -1,0 +1,38 @@
+{
+  "name": "server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "server": "nodemon ./bin/www",
+    "dev": "npm run check-env && npm run server",
+    "build": "echo \"Server build placeholder\"",
+    "start": "node ./bin/www",
+    "prod": "cross-env NODE_ENV=production node ./bin/www",
+    "lint": "eslint . --fix",
+    "check-env": "node ./config/validateEnv.js",
+    "pb": "node ./server/pbServer.js",
+    "export:db-ExecutionPolicy": "powershell -ExecutionPolicy Bypass -File ../database/export/export-all.ps1",
+    "export:db": "powershell -ExecutionPolicy Bypass -File ../database/export/export-all.ps1"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "dotenv": "^17.3.1",
+    "express": "~4.16.1",
+    "http-errors": "~1.6.3",
+    "jade": "~1.11.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "~1.9.1",
+    "multer": "^2.0.2",
+    "mysql2": "^3.19.1",
+    "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^8.45.0",
+    "nodemon": "^3.1.14"
+  }
+}
