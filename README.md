@@ -1,2 +1,3 @@
 # laboratory-sample-tracking-system
-Sample Tracking &amp; Chain of Custody API - REST API for registering, identifying, storing, moving, handling and tracking the history of laboratory samples throughout their life cycle.
+
+Laboratory Sample Tracking System - a specialized LIMS module designed to manage the life cycle of laboratory samples. The system allows you to register samples, relate them to research and experiments, track their physical location, record movements between storage locations, manage responsible persons, preserve documents, and form an immutable history of action with the sample.
