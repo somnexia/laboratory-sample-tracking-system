@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * Ошибки API всегда JSON, не HTML (Jade отключён в фазе 0).
+ * Формат: { "error": "..." } — как в docs/api-contract.md.
+ */
+
 function notFoundHandler(req, res) {
   res.status(404).json({
     error: 'Not Found',

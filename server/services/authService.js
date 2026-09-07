@@ -1,5 +1,15 @@
 'use strict';
 
+/**
+ * Бизнес-логика регистрации и входа (фаза 3).
+ *
+ * Контроллер только принимает HTTP и отдаёт JSON.
+ * Здесь: валидация, поиск пользователя, bcrypt, выпуск JWT.
+ *
+ * Пароль в ответах не возвращаем — только publicUser() без поля password.
+ * Хеш пишет модель User (хуки beforeCreate / beforeUpdate), не этот файл.
+ */
+
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
@@ -8,6 +18,7 @@ const jwtConfig = require('../config/jwt');
 const MIN_PASSWORD_LENGTH = 8;
 const MIN_USERNAME_LENGTH = 3;
 
+/** Ошибка с HTTP-статусом, чтобы контроллер не гадал 400 vs 401. */
 class AuthError extends Error {
   constructor(status, message) {
     super(message);
@@ -15,6 +26,7 @@ class AuthError extends Error {
   }
 }
 
+/** Публичный профиль: те же поля, что в ТЗ, без password. */
 function publicUser(user) {
   return {
     id: user.id,
@@ -24,6 +36,11 @@ function publicUser(user) {
   };
 }
 
+/**
+ * Подпись JWT. В payload только id и username:
+ * этого хватает, чтобы узнать «кто вошёл», пароль и хеш в токен не кладём.
+ * Срок жизни — JWT_EXPIRES_IN (например 1h).
+ */
 function signToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username },
@@ -77,6 +94,10 @@ async function register({ username, email, password }) {
   }
 }
 
+/**
+ * Одинаковое сообщение при «нет пользователя» и «неверный пароль»:
+ * иначе по ответу можно понять, зарегистрирован ли email.
+ */
 async function login({ email, password }) {
   const mail = normalizeEmail(email);
   const pass = String(password || '');
@@ -101,11 +122,21 @@ async function login({ email, password }) {
   };
 }
 
+/** Для GET /auth/me: свежие поля из БД, не только то, что зашито в JWT. */
+async function getById(id) {
+  const user = await User.findByPk(id);
+  if (!user) {
+    return null;
+  }
+  return publicUser(user);
+}
+
 module.exports = {
   AuthError,
   publicUser,
   signToken,
   register,
   login,
+  getById,
   MIN_PASSWORD_LENGTH,
 };

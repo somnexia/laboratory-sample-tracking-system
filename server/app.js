@@ -1,5 +1,11 @@
 'use strict';
 
+/**
+ * Точка сборки Express.
+ * Порядок важен: JSON-парсер → статическая консоль → роуты → 404 → errorHandler.
+ * /auth подключается отдельно: часть путей открытая, GET /me закрыт внутри роутера.
+ */
+
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -22,6 +28,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
+// Открытые register/login и защищённый GET /auth/me
 app.use('/auth', authRouter);
 
 app.use(notFoundHandler);

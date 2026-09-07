@@ -8,9 +8,9 @@ const BCRYPT_ROUNDS = 10;
 /**
  * User — учётная запись API (таблица users).
  *
- * password в БД хранится как bcrypt-хеш (хуки beforeCreate / beforeUpdate).
- * В JSON пароль не попадает: см. toJSON().
- * updated_at нет: профиль после регистрации почти не меняется (erd.md § 1.2).
+ * Хеш пароля: хуки beforeCreate / beforeUpdate, в БД никогда не лежит plaintext.
+ * Ответы API: toJSON() вырезает password, даже если контроллер сделает res.json(user).
+ * Это закрывает пункт ТЗ «не отдавать пароль» (фаза 3.6).
  */
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -67,12 +67,14 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 
+  // Не хешировать повторно, если пароль не меняли (иначе сломается вход).
   User.beforeUpdate(async (user) => {
     if (user.changed('password')) {
       user.password = await bcrypt.hash(user.password, BCRYPT_ROUNDS);
     }
   });
 
+  // res.json(user) и JSON.stringify(user) не должны утечь хеш.
   User.prototype.toJSON = function toJSON() {
     const values = { ...this.get() };
     delete values.password;
