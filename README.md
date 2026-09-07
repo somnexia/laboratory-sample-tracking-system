@@ -95,7 +95,7 @@ Jade/Pug **не используется**. API не рендерит HTML из 
 |---|---|
 | [docs/erd.md](docs/erd.md) | ERD, поля, ограничения, ENUM type/status |
 | [docs/api-contract.md](docs/api-contract.md) | endpoints, тела запросов, коды 201/400/401/403/404 |
-| [docs/erd.drawio](docs/erd.drawio) | диаграммы для draw.io (слайд 4) |
+| [docs/erd.drawio](docs/erd.drawio) | схемы и таблицы фазы 1 в draw.io |
 
 ## Примеры запросов
 
