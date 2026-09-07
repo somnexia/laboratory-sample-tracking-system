@@ -8,7 +8,9 @@
     "start": "npm run check-env && node ./bin/www",
     "prod": "cross-env NODE_ENV=production node ./bin/www",
     "lint": "eslint . --fix",
-    "check-env": "node ./config/validateEnv.js"
+    "check-env": "node ./config/validateEnv.js",
+    "db:sync": "node ./seeders/sync.js",
+    "db:seed": "node ./seeders/seed.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

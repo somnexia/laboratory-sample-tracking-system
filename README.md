@@ -56,13 +56,19 @@ Copy-Item server/.env.example server/.env
 ```
 
 4. Заполнить `server/.env`: `DB_*`, `JWT_SECRET` (не короче 10 символов), `PORT`.
-5. Установить зависимости и запустить:
+5. Установить зависимости, создать таблицы и наполнить seed:
 
 ```bash
 cd server
 npm install
+npm run db:sync
+npm run db:seed
 npm run dev
 ```
+
+`db:sync` в development также выполняется при старте сервера (`sequelize.sync({ alter: true })`). Seed можно гонять повторно — дублей не будет.
+
+Seed-пользователи: `user1@example.com` / `user2@example.com`, пароль `password123`.
 
 Сервер слушает `http://localhost:3000`.
 

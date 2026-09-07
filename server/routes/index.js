@@ -6,8 +6,15 @@ const { SAMPLE_TYPES } = require('../config/sampleTypes');
 const { SAMPLE_STATUSES, ALLOWED_TRANSITIONS, DEFAULT_STATUS } = require('../config/sampleStatuses');
 const { EVENT_ACTIONS } = require('../config/sampleEvents');
 
-router.get('/health', function getHealth(req, res) {
-  res.json({ status: 'ok' });
+const db = require('../models');
+
+router.get('/health', async function getHealth(req, res) {
+  try {
+    await db.sequelize.authenticate();
+    res.json({ status: 'ok', database: 'connected' });
+  } catch (error) {
+    res.status(503).json({ status: 'error', database: 'disconnected' });
+  }
 });
 
 router.get('/api', function getApiIndex(req, res) {

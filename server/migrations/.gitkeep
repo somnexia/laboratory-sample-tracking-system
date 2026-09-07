@@ -1,0 +1,1 @@
+# Placeholder: для сдачи сюда лучше положить Sequelize-миграции вместо sync({ alter: true }).
