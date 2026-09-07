@@ -1,0 +1,75 @@
+@baseUrl = http://localhost:3001
+@seedEmail = user1@example.com
+@seedPassword = password123
+
+# Первая половина фазы 4: POST /samples (JWT) и GET (открытые).
+# Сначала Send Request на Login, потом Create / List / Get by id.
+# PUT и DELETE здесь нет — вторая половина фазы 4.
+
+### Login seed user1
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{seedEmail}}",
+  "password": "{{seedPassword}}"
+}
+
+### Create sample (ожидание 201, status RECEIVED, sample_code SAM-YYYY-NNNNNN)
+# @name createSample
+POST {{baseUrl}}/samples
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "REST Client blood",
+  "type": "BIOLOGICAL",
+  "description": "Created from samples.http",
+  "country": "USA",
+  "location": "Receiving Area",
+  "research_id": 15,
+  "experiment_id": 31
+}
+
+### Create without token (ожидание 401)
+POST {{baseUrl}}/samples
+Content-Type: application/json
+
+{
+  "name": "Should fail",
+  "type": "BIOLOGICAL",
+  "country": "USA"
+}
+
+### Create missing fields (ожидание 400)
+POST {{baseUrl}}/samples
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "No type"
+}
+
+### Create invalid type (ожидание 400)
+POST {{baseUrl}}/samples
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Bad type",
+  "type": "MAGIC",
+  "country": "USA"
+}
+
+### List samples — открытый, без фильтра (ожидание 200, массив)
+GET {{baseUrl}}/samples
+
+### Get created sample by id from Create sample
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}
+
+### Get seed sample #1 (ожидание 200, есть average_rating у SAM-2026-000124)
+GET {{baseUrl}}/samples/1
+
+### Get missing id (ожидание 404)
+GET {{baseUrl}}/samples/999999
