@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample Tracking API</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">REST API</p>
+    <h1>Laboratory Sample Tracking</h1>
+    <p class="lead">
+      Это JSON API без серверных HTML-шаблонов (Jade/Pug). Браузер, эта страница,
+      позже Swagger UI и Postman — достаточный «визуальный» ответ для разработки и защиты.
+    </p>
+
+
+  </main>
+
+  <script>
+    async function loadHealth() {
+      const node = document.getElementById('health-json');
+      try {
+        const response = await fetch('/health');
+        const body = await response.json();
+        node.textContent = JSON.stringify(body, null, 2);
+      } catch (error) {
+        node.textContent = 'Не удалось получить /health: ' + error.message;
+      }
+    }
+
+    document.getElementById('reload').addEventListener('click', loadHealth);
+    loadHealth();
+  </script>
+</body>
+</html>

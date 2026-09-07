@@ -1,21 +1,150 @@
-# laboratory-sample-tracking-system
+# Laboratory Sample Tracking System
 
-Laboratory Sample Tracking System - a specialized LIMS module designed to manage the life cycle of laboratory samples. The system allows you to register samples, relate them to research and experiments, track their physical location, record movements between storage locations, manage responsible persons, preserve documents, and form an immutable history of action with the sample.
+REST API для регистрации лабораторных образцов, смены статуса, загрузки документов, оценок качества и чтения истории действий. Учебный модуль под требования курса (JWT, CRUD с владельцем, файлы, рейтинг, фильтры). В большом LIMS этот же контур станет Sample Tracking & Chain of Custody.
 
-Main idea:
-For any sample, the system shall at all times be able to answer:
+Для любого образца API должен отвечать: что это, когда зарегистрирован, где сейчас, кто создал, какой статус, какая средняя оценка и что уже происходило.
 
-What is this sample?
-Where did he come from?
-When was it registered?
-Where is he now?
-Who is responsible for him?
-Who moved him?
-Who worked with him?
-When did this happen?
-What research is it used for?
-How did his status change?
-What happened to him before?
-Can his stories be trusted?
+## Стек
 
-It is the latter part - Sample Tracking - that is the main difference from regular inventory.
+- Node.js + Express
+- MySQL + Sequelize
+- JWT + bcrypt
+- Multer (файлы)
+- Swagger (будет добавлен позже)
+
+Клиентского SPA нет: ответы API — JSON. «Картинка» для разработки и защиты: браузер (`GET`), статическая консоль на `/`, позже Swagger UI, Postman/curl.
+
+## Структура сервера
+
+```
+server/
+  bin/www
+  config/          database, env, jwt, статусы образца
+  models/          фаза 1–2
+  middleware/      JSON-ошибки; auth и upload — следующие фазы
+  routes/
+  controllers/
+  services/
+  migrations/
+  seeders/
+  uploads/
+  public/          статическая консоль API (не Jade)
+  app.js
+```
+
+## Установка и запуск
+
+Нужны Node.js и MySQL.
+
+1. Клонировать репозиторий.
+2. Создать базу:
+
+```sql
+CREATE DATABASE sample_tracking CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+3. Скопировать переменные окружения:
+
+```bash
+cp server/.env.example server/.env
+```
+
+На Windows (PowerShell):
+
+```powershell
+Copy-Item server/.env.example server/.env
+```
+
+4. Заполнить `server/.env`: `DB_*`, `JWT_SECRET` (не короче 10 символов), `PORT`.
+5. Установить зависимости и запустить:
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+Сервер слушает `http://localhost:3000`.
+
+| Что открыть | Зачем |
+|---|---|
+| http://localhost:3000 | Консоль: живой JSON `/health` |
+| http://localhost:3000/health | `{ "status": "ok" }` |
+| http://localhost:3000/api | Каталог запланированных endpoint |
+
+Проверка без браузера:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Ожидаемый ответ: `{ "status": "ok" }`.
+
+## Как смотреть ответы без views
+
+Jade/Pug **не используется**. API не рендерит HTML из шаблонов.
+
+- **GET в браузере** — Chrome/Firefox показывают JSON (`/health`, `/api`).
+- **Консоль на `/`** — статическая страница из `server/public`, она сама вызывает `/health`.
+- **Swagger UI `/api-docs`** — появится в фазе документации; через него удобно гонять POST/PUT и JWT.
+- **Postman или curl** — обязательны для тел запросов и загрузки файлов.
+
+## Примеры запросов
+
+Пока реализованы только служебные endpoint. Остальные появятся вместе с моделями, JWT и CRUD.
+
+### GET /health
+
+```http
+GET /health
+```
+
+```json
+{ "status": "ok" }
+```
+
+### GET /api
+
+```http
+GET /api
+```
+
+Каталог будущих маршрутов: auth, samples, documents, ratings.
+
+### Запланированные endpoint (ещё не реализованы)
+
+| Метод | Endpoint | Доступ |
+|---|---|---|
+| POST | `/auth/register` | открытый |
+| POST | `/auth/login` | открытый |
+| GET | `/auth/me` | JWT |
+| POST | `/samples` | JWT |
+| GET | `/samples` | открытый |
+| GET | `/samples/:id` | открытый |
+| PUT | `/samples/:id` | владелец |
+| DELETE | `/samples/:id` | владелец |
+| PATCH | `/samples/:id/status` | владелец |
+| GET | `/samples/:id/history` | открытый |
+| GET | `/samples?country=&sort=rating` | открытый |
+| POST | `/samples/:id/documents` | JWT |
+| GET | `/samples/:id/documents` | открытый |
+| DELETE | `/documents/:id` | владелец файла |
+| POST | `/samples/:id/ratings` | JWT |
+| GET | `/samples/:id/rating` | открытый |
+| PUT | `/ratings/:id` | владелец оценки |
+| DELETE | `/ratings/:id` | владелец оценки |
+
+Примеры тел запросов будут добавлены после реализации каждого ресурса.
+
+## Модель данных (план)
+
+Пять таблиц: `users`, `samples`, `sample_documents`, `sample_ratings`, `sample_events`.
+
+Схема Sequelize и ERD — следующая фаза.
+
+## Команда
+
+Роли будут указаны после распределения:
+
+- Backend + Database
+- API + Security + Tests

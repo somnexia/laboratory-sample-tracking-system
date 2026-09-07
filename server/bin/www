@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
+var path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 var app = require('../app');
 var debug = require('debug')('server:server');
@@ -87,4 +86,7 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
+  console.log('API listening on http://localhost:' + port);
+  console.log('Open http://localhost:' + port + ' for the API console');
+  console.log('Health: http://localhost:' + port + '/health');
 }

@@ -1,18 +1,14 @@
 {
-  "name": "server",
+  "name": "laboratory-sample-tracking-api",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "server": "nodemon ./bin/www",
     "dev": "npm run check-env && npm run server",
-    "build": "echo \"Server build placeholder\"",
-    "start": "node ./bin/www",
+    "start": "npm run check-env && node ./bin/www",
     "prod": "cross-env NODE_ENV=production node ./bin/www",
     "lint": "eslint . --fix",
-    "check-env": "node ./config/validateEnv.js",
-    "pb": "node ./server/pbServer.js",
-    "export:db-ExecutionPolicy": "powershell -ExecutionPolicy Bypass -File ../database/export/export-all.ps1",
-    "export:db": "powershell -ExecutionPolicy Bypass -File ../database/export/export-all.ps1"
+    "check-env": "node ./config/validateEnv.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -22,7 +18,6 @@
     "dotenv": "^17.3.1",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
-    "jade": "~1.11.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "~1.9.1",
     "multer": "^2.0.2",
