@@ -1,0 +1,160 @@
+@baseUrl = http://localhost:3001
+@seedEmail = user1@example.com
+@seedPassword = password123
+
+# REST Client (VS Code / Cursor).
+# Сервер: cd server && npm run dev
+# Порт должен совпадать с PORT в server/.env (сейчас 3001).
+#
+# Как гонять:
+# 1) Send Request на «Login seed» — появится token
+# 2) Send Request на «Me with token» — подставится {{login.response.body.token}}
+# Блоки с ### можно слать по одному, в любом порядке (кроме Me — нужен логин выше).
+
+### Health — сервер и MySQL
+GET {{baseUrl}}/health
+
+### Каталог API и ENUM (ещё не реализованные CRUD тоже перечислены)
+GET {{baseUrl}}/api
+
+### HTML-консоль (не JSON)
+GET {{baseUrl}}/
+
+############################################################
+# Auth — happy path (seed user1)
+############################################################
+
+### Login seed user1
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{seedEmail}}",
+  "password": "{{seedPassword}}"
+}
+
+### Me — с JWT из ответа login (ожидание 200, без password)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{login.response.body.token}}
+
+### Login seed user2
+# @name loginUser2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "{{seedPassword}}"
+}
+
+### Me as user2
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{loginUser2.response.body.token}}
+
+############################################################
+# Auth — регистрация
+# Если restclient.user@example.com уже есть в БД — будет 400, смените email.
+############################################################
+
+### Register new user
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "restclient",
+  "email": "restclient.user@example.com",
+  "password": "password123"
+}
+
+### Login just registered user
+# @name loginNew
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "restclient.user@example.com",
+  "password": "password123"
+}
+
+### Me as new user
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{loginNew.response.body.token}}
+
+############################################################
+# Auth — ошибки (то, что нужно для защиты ТЗ)
+############################################################
+
+### Me without Authorization header (ожидание 401)
+GET {{baseUrl}}/auth/me
+
+### Me with garbage token (ожидание 401)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer not-a-jwt
+
+### Me with Bearer but empty token (ожидание 401)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer
+
+### Login wrong password (ожидание 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{seedEmail}}",
+  "password": "wrong-password"
+}
+
+### Login unknown email (ожидание 401, то же сообщение что и неверный пароль)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "nobody@example.com",
+  "password": "password123"
+}
+
+### Login missing body (ожидание 400)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{}
+
+### Register missing fields (ожидание 400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "x"
+}
+
+### Register short password (ожидание 400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "shortpwd",
+  "email": "shortpwd@example.com",
+  "password": "123"
+}
+
+### Register invalid email (ожидание 400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "bademail",
+  "email": "not-an-email",
+  "password": "password123"
+}
+
+### Register duplicate email — тот же что seed user1 (ожидание 400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "someoneelse",
+  "email": "{{seedEmail}}",
+  "password": "password123"
+}

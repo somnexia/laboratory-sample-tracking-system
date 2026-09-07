@@ -16,6 +16,7 @@ const logger = require('morgan');
 
 const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
+const samplesRouter = require('./routes/samples');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 // Открытые register/login и защищённый GET /auth/me
 app.use('/auth', authRouter);
+app.use('/samples', samplesRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
