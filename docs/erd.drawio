@@ -5694,4 +5694,121 @@
       </root>
     </mxGraphModel>
   </diagram>
+  <diagram id="sample-timeline" name="Lifecycle timeline">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="tl-title" value="Жизненный цикл одного образца" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="640" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-sub" value="Лента sample_events для SAM-2026-000124. Читается через GET /samples/124/history (по created_at ASC). События только INSERT." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="40" y="44" width="1100" height="22" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tl-head" value="SAM-2026-000124&#xa;Blood sample · BIOLOGICAL · country: USA&#xa;created_by: Anna (user id 5) · GET /samples/124" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=16;fillColor=#0F766E;strokeColor=#115E59;fontColor=#FFFFFF;fontSize=13;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="72" width="520" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-legend" value="зелёный — статус&#xa;синий — документ&#xa;жёлтый — оценка&#xa;красный — конец (DESTROYED)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=12;fillColor=#F5F5F4;strokeColor=#A8A29E;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="72" width="240" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-hist" value="GET /samples/124/history&#xa;возвращает эту ленту&#xa;&#xa;PATCH из DESTROYED → 400" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=12;fillColor=#FFFBEB;strokeColor=#D97706;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="72" width="280" height="72" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tl-spine" value="" style="endArrow=classic;html=1;strokeWidth=4;strokeColor=#0F766E;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="155" y="165" as="sourcePoint"/>
+            <mxPoint x="155" y="1020" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="tl-s1-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F766E;strokeColor=#0F766E;" vertex="1" parent="1">
+          <mxGeometry x="143" y="190" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s1-time" value="09:30" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="168" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s1-card" value="SAMPLE_CREATED  ·  status RECEIVED&#xa;POST /samples   Anna   201" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#ECFDF5;strokeColor=#0F766E;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="168" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s2-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F766E;strokeColor=#0F766E;" vertex="1" parent="1">
+          <mxGeometry x="143" y="282" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s2-time" value="09:40" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="260" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s2-card" value="STATUS_CHANGED  ·  RECEIVED → REGISTERED&#xa;PATCH /samples/124/status" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#ECFDF5;strokeColor=#0F766E;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="260" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s3-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F766E;strokeColor=#0F766E;" vertex="1" parent="1">
+          <mxGeometry x="143" y="374" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s3-time" value="10:00" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="352" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s3-card" value="STATUS_CHANGED + LOCATION_CHANGED  ·  STORED&#xa;PATCH status + PUT location = Freezer FZ-03" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#ECFDF5;strokeColor=#0F766E;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="352" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s4-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#2563EB;strokeColor=#2563EB;" vertex="1" parent="1">
+          <mxGeometry x="143" y="466" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s4-time" value="10:15" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="444" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s4-card" value="DOCUMENT_UPLOADED  ·  receipt.pdf&#xa;POST /samples/124/documents   201" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#DBEAFE;strokeColor=#2563EB;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="444" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s5-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F766E;strokeColor=#0F766E;" vertex="1" parent="1">
+          <mxGeometry x="143" y="558" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s5-time" value="11:15" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="536" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s5-card" value="LOCATION_CHANGED  ·  FZ-03 → Laboratory A&#xa;PUT /samples/124   { &quot;location&quot;: &quot;Laboratory A&quot; }" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#ECFDF5;strokeColor=#0F766E;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="536" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s6-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F766E;strokeColor=#0F766E;" vertex="1" parent="1">
+          <mxGeometry x="143" y="650" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s6-time" value="11:30" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="628" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s6-card" value="STATUS_CHANGED  ·  STORED → IN_ANALYSIS&#xa;PATCH /samples/124/status   George" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#ECFDF5;strokeColor=#0F766E;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="628" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s7-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#D97706;strokeColor=#D97706;" vertex="1" parent="1">
+          <mxGeometry x="143" y="742" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s7-time" value="13:00" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="720" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s7-card" value="RATING_ADDED  ·  score 5&#xa;POST /samples/124/ratings   201   UNIQUE(sample, user)" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#FEF3C7;strokeColor=#D97706;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="720" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s8-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F766E;strokeColor=#0F766E;" vertex="1" parent="1">
+          <mxGeometry x="143" y="834" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s8-time" value="13:40" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="812" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s8-card" value="STATUS_CHANGED  ·  ANALYZED, location снова FZ-03&#xa;PATCH status + PUT location" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#ECFDF5;strokeColor=#0F766E;fontColor=#1C1917;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="812" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s9-dot" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#B91C1C;strokeColor=#B91C1C;" vertex="1" parent="1">
+          <mxGeometry x="143" y="926" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s9-time" value="позже" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#57534E;" vertex="1" parent="1">
+          <mxGeometry x="16" y="904" width="120" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-s9-card" value="STATUS_CHANGED  ·  ARCHIVED → DESTROYED&#xa;конец жизненного цикла; историю не удаляют; назад в STORED нельзя" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;spacingLeft=14;fillColor=#FEE2E2;strokeColor=#B91C1C;fontColor=#7F1D1D;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="904" width="700" height="68" as="geometry"/>
+        </mxCell>
+        <mxCell id="tl-side" value="Не на этой ленте&#xa;&#xa;• дерево склада&#xa;• таблица transfers&#xa;• custodian&#xa;&#xa;Место — строка samples.location&#xa;Владелец — created_by" style="rounded=1;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=14;spacingTop=10;fillColor=#F5F5F4;strokeColor=#A8A29E;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="920" y="168" width="280" height="200" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
 </mxfile>

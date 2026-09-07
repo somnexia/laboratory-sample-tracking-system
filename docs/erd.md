@@ -308,6 +308,7 @@ RECEIVED → REGISTERED → STORED → IN_ANALYSIS → ANALYZED → ARCHIVED →
 | ERD — обзор 1:N | п. 1.1 связи |
 | Типы образца | п. 1.4 |
 | Статусы | п. 1.5 блок-схема |
+| Lifecycle timeline | один образец: события + запросы |
 | Карта API | п. 1.6 группы |
 | 1.2 Поля … | таблицы из `erd.md` |
 | 1.3 Ограничения и FK | п. 1.3 |
