@@ -89,9 +89,17 @@ Jade/Pug **не используется**. API не рендерит HTML из 
 - **Swagger UI `/api-docs`** — появится в фазе документации; через него удобно гонять POST/PUT и JWT.
 - **Postman или curl** — обязательны для тел запросов и загрузки файлов.
 
+## Документация фазы 1
+
+| Файл | Содержание |
+|---|---|
+| [docs/erd.md](docs/erd.md) | ERD, поля, ограничения, ENUM type/status |
+| [docs/api-contract.md](docs/api-contract.md) | endpoints, тела запросов, коды 201/400/401/403/404 |
+| [docs/erd.drawio](docs/erd.drawio) | диаграммы для draw.io (слайд 4) |
+
 ## Примеры запросов
 
-Пока реализованы только служебные endpoint. Остальные появятся вместе с моделями, JWT и CRUD.
+Пока реализованы служебные endpoint. Полный контракт остальных — в `docs/api-contract.md`.
 
 ### GET /health
 
@@ -109,38 +117,15 @@ GET /health
 GET /api
 ```
 
-Каталог будущих маршрутов: auth, samples, documents, ratings.
+Каталог маршрутов, ENUM типов и статусов, карта переходов.
 
-### Запланированные endpoint (ещё не реализованы)
+Остальные методы (auth, samples, documents, ratings) появятся в фазах 3–8. Коды ответов уже зафиксированы: 201 создание, 400 валидация, 401 нет JWT, 403 чужая запись, 404 нет ресурса.
 
-| Метод | Endpoint | Доступ |
-|---|---|---|
-| POST | `/auth/register` | открытый |
-| POST | `/auth/login` | открытый |
-| GET | `/auth/me` | JWT |
-| POST | `/samples` | JWT |
-| GET | `/samples` | открытый |
-| GET | `/samples/:id` | открытый |
-| PUT | `/samples/:id` | владелец |
-| DELETE | `/samples/:id` | владелец |
-| PATCH | `/samples/:id/status` | владелец |
-| GET | `/samples/:id/history` | открытый |
-| GET | `/samples?country=&sort=rating` | открытый |
-| POST | `/samples/:id/documents` | JWT |
-| GET | `/samples/:id/documents` | открытый |
-| DELETE | `/documents/:id` | владелец файла |
-| POST | `/samples/:id/ratings` | JWT |
-| GET | `/samples/:id/rating` | открытый |
-| PUT | `/ratings/:id` | владелец оценки |
-| DELETE | `/ratings/:id` | владелец оценки |
-
-Примеры тел запросов будут добавлены после реализации каждого ресурса.
-
-## Модель данных (план)
+## Модель данных
 
 Пять таблиц: `users`, `samples`, `sample_documents`, `sample_ratings`, `sample_events`.
 
-Схема Sequelize и ERD — следующая фаза.
+Подробности и ERD: [docs/erd.md](docs/erd.md). Редактор схем: откройте `docs/erd.drawio` в diagrams.net.
 
 ## Команда
 

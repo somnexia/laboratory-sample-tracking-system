@@ -1,5 +1,9 @@
 'use strict';
 
+/**
+ * Учебный жизненный цикл образца: одна линия.
+ * DESTROYED — терминальный статус, переходов из него нет.
+ */
 const SAMPLE_STATUSES = [
   'RECEIVED',
   'REGISTERED',
