@@ -7,7 +7,7 @@
  *   401 — «кто ты?»  нет/битый JWT (authRequired)
  *   403 — «ты не владелец»  токен валидный, но запись чужая (ownerOnly)
  *
- * Цепочка для PUT/DELETE образца (фаза 4, реализована):
+ * Цепочка для PUT/DELETE/PATCH status образца:
  *   authRequired → контроллер грузит sample → ownerOnly(req, sample.created_by, res)
  *
  * Для файла/оценки сравнивают user_id, не created_by образца.

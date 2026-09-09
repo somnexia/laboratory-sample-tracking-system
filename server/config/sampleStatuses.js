@@ -1,12 +1,13 @@
 'use strict';
 
 /**
- * Жизненный цикл образца (фаза 1.5 / docs/erd.md).
+ * Жизненный цикл образца (фаза 1.5, используется в фазе 5.1–5.4).
  *
  * Одна линия, без веток IN_TRANSIT и QUALITY_FAILED.
  * POST /samples всегда ставит DEFAULT_STATUS (RECEIVED).
- * Смена только через PATCH /samples/:id/status + canTransition().
- * DESTROYED — конец: массив переходов пустой, любой PATCH → 400.
+ * PUT /samples/:id статус не читает — иначе можно было бы перепрыгнуть карту.
+ * Смена только PATCH /samples/:id/status: canTransition() == false → 400
+ * «Invalid status transition». DESTROYED — тупик, массив TO пустой.
  */
 
 /** Допустимые значения колонки samples.status (MySQL ENUM). */

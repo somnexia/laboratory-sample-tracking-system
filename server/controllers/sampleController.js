@@ -1,10 +1,10 @@
 'use strict';
 
 /**
- * HTTP для samples (фаза 4, полный CRUD карточки).
+ * HTTP для samples: CRUD карточки (фаза 4) и PATCH статуса (фаза 5, первая половина).
  *
- * GET открытые. POST/PUT/DELETE — JWT; чужую запись режет ownerOnly → 403.
- * PATCH /status и GET /history — фаза 5, здесь их нет.
+ * GET открытые. POST/PUT/DELETE/PATCH status — JWT; чужую запись режет ownerOnly → 403.
+ * GET /history ещё нет: лента событий — вторая половина фазы 5.
  */
 
 const sampleService = require('../services/sampleService');
@@ -84,10 +84,25 @@ async function remove(req, res, next) {
   }
 }
 
+/** Смена status по карте. Тело: { "status": "REGISTERED" }. */
+async function changeStatus(req, res, next) {
+  try {
+    const sample = await loadOwnedSample(req, res);
+    if (!sample) {
+      return undefined;
+    }
+    const updated = await sampleService.changeStatus(req.user.id, sample, req.body || {});
+    return res.status(200).json(updated);
+  } catch (error) {
+    return handleError(error, res, next);
+  }
+}
+
 module.exports = {
   create,
   list,
   getById,
   update,
   remove,
+  changeStatus,
 };

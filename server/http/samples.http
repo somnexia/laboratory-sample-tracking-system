@@ -2,9 +2,9 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 4: CRUD карточки образца.
-# Сначала Send Request на Login user1, потом Create / PUT / DELETE.
-# PATCH /samples/:id/status здесь нет — фаза 5.
+# Фаза 4: CRUD карточки. Фаза 5 (первая половина): PATCH /samples/:id/status.
+# Сначала Login user1 / user2, потом Create / PUT / PATCH.
+# GET /samples/:id/history ещё нет — вторая половина фазы 5.
 
 ### Login seed user1
 # @name login
@@ -170,3 +170,119 @@ Authorization: Bearer {{login.response.body.token}}
 
 ### Get after delete (ожидание 404)
 GET {{baseUrl}}/samples/{{createSample.response.body.id}}
+
+############################################################
+# PATCH status — первая половина фазы 5 (карта переходов)
+# Не используйте createSample выше: его DELETE уже снял запись.
+############################################################
+
+### Create sample for status machine
+# @name createStatusSample
+POST {{baseUrl}}/samples
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Status machine vial",
+  "type": "CHEMICAL",
+  "country": "USA",
+  "location": "Receiving Area"
+}
+
+### PATCH RECEIVED → REGISTERED (ожидание 200)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "REGISTERED"
+}
+
+### PATCH skip REGISTERED → IN_ANALYSIS (ожидание 400 Invalid status transition)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "IN_ANALYSIS"
+}
+
+### PATCH REGISTERED → STORED (ожидание 200)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "STORED"
+}
+
+### PATCH STORED → IN_ANALYSIS (ожидание 200)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "IN_ANALYSIS"
+}
+
+### PATCH IN_ANALYSIS → ANALYZED (ожидание 200)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "ANALYZED"
+}
+
+### PATCH ANALYZED → ARCHIVED (ожидание 200)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "ARCHIVED"
+}
+
+### PATCH ARCHIVED → DESTROYED (ожидание 200)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "DESTROYED"
+}
+
+### PATCH DESTROYED → STORED (ожидание 400 Invalid status transition)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "STORED"
+}
+
+### PATCH without token (ожидание 401)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Content-Type: application/json
+
+{
+  "status": "STORED"
+}
+
+### PATCH as user2 — чужая запись (ожидание 403)
+PATCH {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/status
+Authorization: Bearer {{loginUser2.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "STORED"
+}
+
+### PATCH missing id (ожидание 404)
+PATCH {{baseUrl}}/samples/999999/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "REGISTERED"
+}

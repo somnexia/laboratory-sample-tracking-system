@@ -1,19 +1,19 @@
 'use strict';
 
 /**
- * CRUD образцов (фаза 4).
+ * CRUD образцов (фаза 4) и смена статуса (первая половина фазы 5).
  *
- * POST + GET — любой с JWT может создать, читать можно без токена.
- * PUT + DELETE — только created_by; статус здесь не меняем (фаза 5).
+ * POST + GET — создать с JWT, читать без токена.
+ * PUT + DELETE — только created_by; поля карточки, не status.
+ * PATCH status — один шаг по карте ALLOWED_TRANSITIONS, событие STATUS_CHANGED.
  *
- * sample_code выдаёт сервер (SAM-YYYY-NNNNNN), status при создании — RECEIVED.
- * Каждое изменение пишет строку в sample_events в той же транзакции.
+ * GET /history — вторая половина фазы 5, здесь его нет.
  */
 
 const { Op } = require('sequelize');
 const { Sample, SampleEvent, SampleRating, sequelize } = require('../models');
 const { isValidType } = require('../config/sampleTypes');
-const { DEFAULT_STATUS } = require('../config/sampleStatuses');
+const { DEFAULT_STATUS, canTransition } = require('../config/sampleStatuses');
 const { AppError } = require('./appError');
 
 function hasOwn(body, key) {
@@ -287,6 +287,35 @@ async function remove(sample) {
   await sample.destroy();
 }
 
+/**
+ * Один шаг жизненного цикла. Нельзя перепрыгнуть (RECEIVED → STORED)
+ * и нельзя отойти назад (DESTROYED → STORED): оба случая — одна 400.
+ * Сообщение фиксировано контрактом, чтобы клиент не гадал формулировку.
+ */
+async function changeStatus(userId, sample, body) {
+  const nextStatus = String((body && body.status) || '').trim();
+  const previous = sample.status;
+
+  if (!canTransition(previous, nextStatus)) {
+    throw new AppError(400, 'Invalid status transition');
+  }
+
+  sample.status = nextStatus;
+
+  await sequelize.transaction(async (transaction) => {
+    await sample.save({ transaction });
+    await SampleEvent.create({
+      sample_id: sample.id,
+      user_id: userId,
+      action: 'STATUS_CHANGED',
+      old_value: previous,
+      new_value: nextStatus,
+    }, { transaction });
+  });
+
+  return toResponse(sample);
+}
+
 module.exports = {
   create,
   list,
@@ -294,5 +323,6 @@ module.exports = {
   findByIdOrThrow,
   update,
   remove,
+  changeStatus,
   publicSample,
 };
