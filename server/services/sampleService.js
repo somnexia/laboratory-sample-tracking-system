@@ -1,13 +1,13 @@
 'use strict';
 
 /**
- * Создание и чтение образцов (первая половина фазы 4).
+ * CRUD образцов (фаза 4).
  *
- * Здесь: POST (JWT) + GET список + GET по id (открытые).
- * PUT / DELETE / PATCH status / фильтры — вторая половина фазы 4 и фазы 5–8.
+ * POST + GET — любой с JWT может создать, читать можно без токена.
+ * PUT + DELETE — только created_by; статус здесь не меняем (фаза 5).
  *
- * sample_code выдаёт сервер (SAM-YYYY-NNNNNN), status всегда RECEIVED.
- * Вместе с образцом пишется SAMPLE_CREATED в sample_events (одна транзакция).
+ * sample_code выдаёт сервер (SAM-YYYY-NNNNNN), status при создании — RECEIVED.
+ * Каждое изменение пишет строку в sample_events в той же транзакции.
  */
 
 const { Op } = require('sequelize');
@@ -15,6 +15,10 @@ const { Sample, SampleEvent, SampleRating, sequelize } = require('../models');
 const { isValidType } = require('../config/sampleTypes');
 const { DEFAULT_STATUS } = require('../config/sampleStatuses');
 const { AppError } = require('./appError');
+
+function hasOwn(body, key) {
+  return Object.prototype.hasOwnProperty.call(body, key);
+}
 
 function optionalInt(value, fieldName) {
   if (value === undefined || value === null || value === '') {
@@ -25,6 +29,26 @@ function optionalInt(value, fieldName) {
     throw new AppError(400, `${fieldName} must be an integer or null`);
   }
   return n;
+}
+
+/** location NULL и пустая строка считаем одним и тем же «места нет». */
+function normalizeLocation(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || value === '') {
+    return null;
+  }
+  const text = String(value).trim();
+  return text === '' ? null : text;
+}
+
+function eventValue(value) {
+  if (value == null) {
+    return null;
+  }
+  const text = String(value);
+  return text.length > 255 ? text.slice(0, 255) : text;
 }
 
 function publicSample(sample) {
@@ -153,7 +177,11 @@ async function list() {
   return result;
 }
 
-async function getById(id) {
+/**
+ * Экземпляр модели или 404. Нужен контроллеру до ownerOnly:
+ * сначала убеждаемся, что запись есть, потом сравниваем created_by.
+ */
+async function findByIdOrThrow(id) {
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId < 1) {
     throw new AppError(404, 'Sample not found');
@@ -164,12 +192,107 @@ async function getById(id) {
     throw new AppError(404, 'Sample not found');
   }
 
+  return sample;
+}
+
+async function getById(id) {
+  return toResponse(await findByIdOrThrow(id));
+}
+
+/**
+ * Поля карточки. sample_code / status / created_by клиент прислать может —
+ * мы их не читаем: код выдаёт сервер, статус только PATCH (фаза 5),
+ * владельца нельзя «переписать» на себя.
+ *
+ * Если изменился location — LOCATION_CHANGED (даже если параллельно меняли name).
+ * Иначе SAMPLE_UPDATED. Код, статус и created_by из body не читаем.
+ */
+async function update(userId, sample, body) {
+  const previousLocation = normalizeLocation(sample.location) ?? null;
+
+  if (hasOwn(body, 'name')) {
+    const name = String(body.name || '').trim();
+    if (!name) {
+      throw new AppError(400, 'name cannot be empty');
+    }
+    sample.name = name;
+  }
+
+  if (hasOwn(body, 'type')) {
+    const type = String(body.type || '').trim();
+    if (!isValidType(type)) {
+      throw new AppError(400, 'type is invalid');
+    }
+    sample.type = type;
+  }
+
+  if (hasOwn(body, 'description')) {
+    sample.description = body.description == null ? null : String(body.description);
+  }
+
+  if (hasOwn(body, 'country')) {
+    const country = String(body.country || '').trim();
+    if (!country) {
+      throw new AppError(400, 'country cannot be empty');
+    }
+    sample.country = country;
+  }
+
+  let locationChanged = false;
+  if (hasOwn(body, 'location')) {
+    const nextLocation = normalizeLocation(body.location);
+    locationChanged = previousLocation !== nextLocation;
+    sample.location = nextLocation;
+  }
+
+  if (hasOwn(body, 'research_id')) {
+    sample.research_id = optionalInt(body.research_id, 'research_id');
+  }
+
+  if (hasOwn(body, 'experiment_id')) {
+    sample.experiment_id = optionalInt(body.experiment_id, 'experiment_id');
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    await sample.save({ transaction });
+
+    if (locationChanged) {
+      await SampleEvent.create({
+        sample_id: sample.id,
+        user_id: userId,
+        action: 'LOCATION_CHANGED',
+        old_value: eventValue(previousLocation),
+        new_value: eventValue(sample.location),
+      }, { transaction });
+      return;
+    }
+
+    await SampleEvent.create({
+      sample_id: sample.id,
+      user_id: userId,
+      action: 'SAMPLE_UPDATED',
+      old_value: null,
+      new_value: sample.sample_code,
+    }, { transaction });
+  });
+
   return toResponse(sample);
+}
+
+/**
+ * Удаление владельцем. Отдельного SAMPLE_DELETED нет: документы, оценки
+ * и лента событий уходят каскадом с образцом (ON DELETE CASCADE).
+ */
+async function remove(sample) {
+  await sample.destroy();
 }
 
 module.exports = {
   create,
   list,
   getById,
+  findByIdOrThrow,
+  update,
+  remove,
   publicSample,
 };

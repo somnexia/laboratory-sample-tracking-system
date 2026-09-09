@@ -1,12 +1,14 @@
 'use strict';
 
 /**
- * /samples — первая половина фазы 4.
+ * /samples — фаза 4.
  *
  * GET  /samples и GET /samples/:id — без токена (как GET /landmarks в ТЗ).
- * POST /samples — только JWT: иначе любой мог бы создать запись «от чужого имени».
+ * POST /samples — JWT: иначе любой создал бы запись «от чужого имени».
+ * PUT  /samples/:id и DELETE /samples/:id — JWT + владелец (403 чужому).
  *
- * Порядок маршрутов: сначала '/', потом '/:id', чтобы «samples» не съел id.
+ * PATCH /:id/status и GET /:id/history здесь не вешаем — фаза 5.
+ * Порядок: сначала '/', потом '/:id', чтобы литерал не съел id.
  */
 
 const express = require('express');
@@ -18,5 +20,7 @@ const router = express.Router();
 router.post('/', authRequired, sampleController.create);
 router.get('/', sampleController.list);
 router.get('/:id', sampleController.getById);
+router.put('/:id', authRequired, sampleController.update);
+router.delete('/:id', authRequired, sampleController.remove);
 
 module.exports = router;

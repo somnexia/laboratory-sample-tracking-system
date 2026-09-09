@@ -31,7 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 // Открытые register/login и защищённый GET /auth/me
 app.use('/auth', authRouter);
-// GET открытые; POST только с JWT. PUT/DELETE ещё нет.
+// GET открытые; POST/PUT/DELETE с JWT. PUT/DELETE ещё и ownerOnly в контроллере.
 app.use('/samples', samplesRouter);
 
 app.use(notFoundHandler);

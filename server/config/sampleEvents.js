@@ -7,8 +7,8 @@
  * изменил sample / document / rating. Маршрутов PUT/PATCH/DELETE /events нет.
  *
  * SAMPLE_CREATED     — POST /samples
- * SAMPLE_UPDATED     — PUT /samples/:id (поля кроме location)
- * LOCATION_CHANGED   — PUT, изменилось location
+ * SAMPLE_UPDATED     — PUT /samples/:id, location не менялся
+ * LOCATION_CHANGED   — PUT /samples/:id, изменилось location
  * STATUS_CHANGED     — PATCH /samples/:id/status
  * DOCUMENT_UPLOADED  — POST .../documents
  * DOCUMENT_DELETED   — DELETE /documents/:id

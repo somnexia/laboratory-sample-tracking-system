@@ -2,9 +2,9 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Первая половина фазы 4: POST /samples (JWT) и GET (открытые).
-# Сначала Send Request на Login, потом Create / List / Get by id.
-# PUT и DELETE здесь нет — вторая половина фазы 4.
+# Фаза 4: CRUD карточки образца.
+# Сначала Send Request на Login user1, потом Create / PUT / DELETE.
+# PATCH /samples/:id/status здесь нет — фаза 5.
 
 ### Login seed user1
 # @name login
@@ -15,6 +15,20 @@ Content-Type: application/json
   "email": "{{seedEmail}}",
   "password": "{{seedPassword}}"
 }
+
+### Login seed user2 (для 403)
+# @name loginUser2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "{{seedPassword}}"
+}
+
+############################################################
+# Создание и чтение
+############################################################
 
 ### Create sample (ожидание 201, status RECEIVED, sample_code SAM-YYYY-NNNNNN)
 # @name createSample
@@ -69,7 +83,90 @@ GET {{baseUrl}}/samples
 GET {{baseUrl}}/samples/{{createSample.response.body.id}}
 
 ### Get seed sample #1 (ожидание 200, есть average_rating у SAM-2026-000124)
-GET {{baseUrl}}/samples/1
+GET {{baseUrl}}/samples/2
 
 ### Get missing id (ожидание 404)
 GET {{baseUrl}}/samples/999999
+
+############################################################
+# PUT — владелец; код/статус/created_by не меняются
+############################################################
+
+### Update name and description (ожидание 200, событие SAMPLE_UPDATED)
+PUT {{baseUrl}}/samples/{{createSample.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "REST Client blood updated",
+  "description": "Fields changed, location same",
+  "status": "DESTROYED",
+  "sample_code": "HACK-000001",
+  "created_by": 999
+}
+
+### Update location (ожидание 200, событие LOCATION_CHANGED)
+PUT {{baseUrl}}/samples/{{createSample.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "location": "Freezer FZ-2"
+}
+
+### Update invalid type (ожидание 400)
+PUT {{baseUrl}}/samples/{{createSample.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "type": "MAGIC"
+}
+
+### Update without token (ожидание 401)
+PUT {{baseUrl}}/samples/{{createSample.response.body.id}}
+Content-Type: application/json
+
+{
+  "name": "No token"
+}
+
+### Update as user2 — чужая запись (ожидание 403)
+PUT {{baseUrl}}/samples/{{createSample.response.body.id}}
+Authorization: Bearer {{loginUser2.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Stolen name"
+}
+
+### Update missing id (ожидание 404)
+PUT {{baseUrl}}/samples/999999
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Ghost"
+}
+
+############################################################
+# DELETE — владелец 204; чужой 403; каскад documents/ratings/events
+############################################################
+
+### Delete as user2 — чужая запись (ожидание 403)
+DELETE {{baseUrl}}/samples/{{createSample.response.body.id}}
+Authorization: Bearer {{loginUser2.response.body.token}}
+
+### Delete without token (ожидание 401)
+DELETE {{baseUrl}}/samples/{{createSample.response.body.id}}
+
+### Delete missing id (ожидание 404)
+DELETE {{baseUrl}}/samples/999999
+Authorization: Bearer {{login.response.body.token}}
+
+### Delete own sample (ожидание 204, тело пустое)
+DELETE {{baseUrl}}/samples/{{createSample.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+
+### Get after delete (ожидание 404)
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}

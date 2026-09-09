@@ -1,17 +1,33 @@
 'use strict';
 
 /**
- * HTTP для samples: создание (JWT) и чтение (открытое).
- * PUT/DELETE с ownerOnly — вторая половина фазы 4.
+ * HTTP для samples (фаза 4, полный CRUD карточки).
+ *
+ * GET открытые. POST/PUT/DELETE — JWT; чужую запись режет ownerOnly → 403.
+ * PATCH /status и GET /history — фаза 5, здесь их нет.
  */
 
 const sampleService = require('../services/sampleService');
+const { ownerOnly } = require('../middleware/auth');
 
 function handleError(error, res, next) {
   if (error.status) {
     return res.status(error.status).json({ error: error.message });
   }
   return next(error);
+}
+
+/**
+ * Загрузить образец и проверить владельца.
+ * 404 — нет id; 403 — токен есть, но created_by другой.
+ * null значит ответ уже отправлен (403/401).
+ */
+async function loadOwnedSample(req, res) {
+  const sample = await sampleService.findByIdOrThrow(req.params.id);
+  if (ownerOnly(req, sample.created_by, res)) {
+    return null;
+  }
+  return sample;
 }
 
 async function create(req, res, next) {
@@ -41,8 +57,37 @@ async function getById(req, res, next) {
   }
 }
 
+async function update(req, res, next) {
+  try {
+    const sample = await loadOwnedSample(req, res);
+    if (!sample) {
+      return undefined;
+    }
+    const updated = await sampleService.update(req.user.id, sample, req.body || {});
+    return res.status(200).json(updated);
+  } catch (error) {
+    return handleError(error, res, next);
+  }
+}
+
+async function remove(req, res, next) {
+  try {
+    const sample = await loadOwnedSample(req, res);
+    if (!sample) {
+      return undefined;
+    }
+    await sampleService.remove(sample);
+    // 204 — успех без тела; json() сюда нельзя, клиент ждёт пустой ответ.
+    return res.status(204).end();
+  } catch (error) {
+    return handleError(error, res, next);
+  }
+}
+
 module.exports = {
   create,
   list,
   getById,
+  update,
+  remove,
 };
