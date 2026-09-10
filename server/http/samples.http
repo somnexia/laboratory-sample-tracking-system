@@ -2,9 +2,8 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 4: CRUD карточки. Фаза 5 (первая половина): PATCH /samples/:id/status.
-# Сначала Login user1 / user2, потом Create / PUT / PATCH.
-# GET /samples/:id/history ещё нет — вторая половина фазы 5.
+# Фаза 4–5: CRUD карточки, PATCH статуса, GET /samples/:id/history.
+# Сначала Login user1 / user2, потом Create / PUT / PATCH / History.
 
 ### Login seed user1
 # @name login
@@ -286,3 +285,78 @@ Content-Type: application/json
 {
   "status": "REGISTERED"
 }
+
+############################################################
+# GET history — открытая лента sample_events (created_at ASC)
+# Нет PUT/PATCH/DELETE /events — ожидайте 404 на блоках ниже.
+############################################################
+
+### History of status sample — без токена (ожидание 200, массив)
+GET {{baseUrl}}/samples/{{createStatusSample.response.body.id}}/history
+
+### Create sample to show CREATED + LOCATION + STATUS in one ленте
+# @name createHistorySample
+POST {{baseUrl}}/samples
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "History demo",
+  "type": "WATER",
+  "country": "Germany",
+  "location": "Bench 1"
+}
+
+### History right after create (ожидание SAMPLE_CREATED первым)
+GET {{baseUrl}}/samples/{{createHistorySample.response.body.id}}/history
+
+### Move location then status — два новых события в ленте
+PUT {{baseUrl}}/samples/{{createHistorySample.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "location": "Freezer FZ-03"
+}
+
+###
+PATCH {{baseUrl}}/samples/{{createHistorySample.response.body.id}}/status
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "REGISTERED"
+}
+
+### History after PUT location + PATCH status
+# Ожидание по порядку: SAMPLE_CREATED, LOCATION_CHANGED, STATUS_CHANGED
+GET {{baseUrl}}/samples/{{createHistorySample.response.body.id}}/history
+
+### History of seed sample #1 (ожидание 200)
+GET {{baseUrl}}/samples/1/history
+
+### History missing id (ожидание 404)
+GET {{baseUrl}}/samples/999999/history
+
+### Events are INSERT-only — PUT /events/:id (ожидание 404)
+PUT {{baseUrl}}/events/1
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "action": "SAMPLE_UPDATED"
+}
+
+### Events are INSERT-only — PATCH /events/:id (ожидание 404)
+PATCH {{baseUrl}}/events/1
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "old_value": "hack"
+}
+
+### Events are INSERT-only — DELETE /events/:id (ожидание 404)
+DELETE {{baseUrl}}/events/1
+Authorization: Bearer {{login.response.body.token}}
+

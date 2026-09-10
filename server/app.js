@@ -31,7 +31,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 // Открытые register/login и защищённый GET /auth/me
 app.use('/auth', authRouter);
-// GET открытые; POST/PUT/DELETE/PATCH status с JWT. История — следующая половина фазы 5.
+// GET карточки и history открытые. POST/PUT/DELETE/PATCH status — JWT.
+// Отдельного /events роутера нет: события только читаются через /samples/:id/history.
 app.use('/samples', samplesRouter);
 
 app.use(notFoundHandler);

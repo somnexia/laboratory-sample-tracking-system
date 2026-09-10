@@ -7,6 +7,7 @@ const { EVENT_ACTIONS } = require('../config/sampleEvents');
  * SampleEvent — запись истории образца (таблица sample_events).
  *
  * INSERT-only: в API нет PUT/PATCH/DELETE для событий.
+ * Читают ленту через GET /samples/:id/history, не через /events.
  * Контроллеры не должны вызывать update / destroy на этой модели.
  * ON DELETE CASCADE: удаление образца забирает и его ленту.
  */

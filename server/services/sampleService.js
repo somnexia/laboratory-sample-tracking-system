@@ -1,13 +1,12 @@
 'use strict';
 
 /**
- * CRUD образцов (фаза 4) и смена статуса (первая половина фазы 5).
+ * CRUD образцов (фаза 4) и жизненный цикл (фаза 5).
  *
  * POST + GET — создать с JWT, читать без токена.
  * PUT + DELETE — только created_by; поля карточки, не status.
  * PATCH status — один шаг по карте ALLOWED_TRANSITIONS, событие STATUS_CHANGED.
- *
- * GET /history — вторая половина фазы 5, здесь его нет.
+ * GET /history — открытая лента sample_events; строк событий API не меняет.
  */
 
 const { Op } = require('sequelize');
@@ -316,6 +315,38 @@ async function changeStatus(userId, sample, body) {
   return toResponse(sample);
 }
 
+/** Поля события как в api-contract.md. update/destroy модели здесь не вызываем. */
+function publicEvent(event) {
+  return {
+    id: event.id,
+    sample_id: event.sample_id,
+    user_id: event.user_id,
+    action: event.action,
+    old_value: event.old_value,
+    new_value: event.new_value,
+    created_at: event.created_at,
+  };
+}
+
+/**
+ * Лента образца по времени. Сначала проверяем, что sample есть:
+ * иначе пустой [] выглядел бы как «истории нет», а не как 404.
+ * Событий не было — всё равно 200 и []. Сортировка created_at ASC, при равенстве id.
+ */
+async function getHistory(id) {
+  const sample = await findByIdOrThrow(id);
+
+  const rows = await SampleEvent.findAll({
+    where: { sample_id: sample.id },
+    order: [
+      ['created_at', 'ASC'],
+      ['id', 'ASC'],
+    ],
+  });
+
+  return rows.map(publicEvent);
+}
+
 module.exports = {
   create,
   list,
@@ -324,5 +355,6 @@ module.exports = {
   update,
   remove,
   changeStatus,
+  getHistory,
   publicSample,
 };

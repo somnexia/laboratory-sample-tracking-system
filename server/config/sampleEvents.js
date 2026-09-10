@@ -9,7 +9,8 @@
  * SAMPLE_CREATED     — POST /samples
  * SAMPLE_UPDATED     — PUT /samples/:id, location не менялся
  * LOCATION_CHANGED   — PUT /samples/:id, изменилось location
- * STATUS_CHANGED     — PATCH /samples/:id/status (фаза 5, первая половина)
+ * STATUS_CHANGED     — PATCH /samples/:id/status
+ * Чтение ленты        — GET /samples/:id/history (фаза 5). Менять события нельзя.
  * DOCUMENT_UPLOADED  — POST .../documents
  * DOCUMENT_DELETED   — DELETE /documents/:id
  * RATING_ADDED       — POST .../ratings

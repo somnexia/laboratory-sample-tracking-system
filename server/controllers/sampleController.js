@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * HTTP для samples: CRUD карточки (фаза 4) и PATCH статуса (фаза 5, первая половина).
+ * HTTP для samples: CRUD (фаза 4), статус и history (фаза 5).
  *
- * GET открытые. POST/PUT/DELETE/PATCH status — JWT; чужую запись режет ownerOnly → 403.
- * GET /history ещё нет: лента событий — вторая половина фазы 5.
+ * GET карточки и GET /history — без токена (как просмотр landmark в ТЗ).
+ * POST/PUT/DELETE/PATCH status — JWT; чужую запись режет ownerOnly → 403.
+ * Менять и удалять строки sample_events этим контроллером нельзя.
  */
 
 const sampleService = require('../services/sampleService');
@@ -98,6 +99,16 @@ async function changeStatus(req, res, next) {
   }
 }
 
+/** Открытая лента. Нет authRequired: историю смотрят так же, как карточку. */
+async function getHistory(req, res, next) {
+  try {
+    const events = await sampleService.getHistory(req.params.id);
+    return res.status(200).json(events);
+  } catch (error) {
+    return handleError(error, res, next);
+  }
+}
+
 module.exports = {
   create,
   list,
@@ -105,4 +116,5 @@ module.exports = {
   update,
   remove,
   changeStatus,
+  getHistory,
 };
