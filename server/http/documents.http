@@ -1,0 +1,90 @@
+@baseUrl = http://localhost:3001
+@seedEmail = user1@example.com
+@seedPassword = password123
+
+# Фаза 6, первая половина: POST/GET документов. DELETE ещё нет.
+# Поле формы обязательно называется file (multipart/form-data).
+# Путь < ./tiny.pdf — относительно этой папки server/http/.
+
+### Login seed user1
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{seedEmail}}",
+  "password": "{{seedPassword}}"
+}
+
+### Login seed user2
+# @name loginUser2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "{{seedPassword}}"
+}
+
+### List documents of seed sample #1 (открытый, ожидание 200)
+GET {{baseUrl}}/samples/1/documents
+
+### Upload PDF to sample #1 (ожидание 201, DOCUMENT_UPLOADED в history)
+# @name uploadPdf
+POST {{baseUrl}}/samples/1/documents
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=----docBoundary
+
+------docBoundary
+Content-Disposition: form-data; name="file"; filename="receipt.pdf"
+Content-Type: application/pdf
+
+< ./tiny.pdf
+------docBoundary--
+
+### Download uploaded file (подставьте file_path из ответа uploadPdf)
+GET {{baseUrl}}{{uploadPdf.response.body.file_path}}
+
+### List after upload — новый файл должен быть в массиве
+GET {{baseUrl}}/samples/1/documents
+
+### History of sample #1 — последнее событие DOCUMENT_UPLOADED
+GET {{baseUrl}}/samples/1/history
+
+### Upload without token (ожидание 401)
+POST {{baseUrl}}/samples/1/documents
+Content-Type: multipart/form-data; boundary=----docBoundary
+
+------docBoundary
+Content-Disposition: form-data; name="file"; filename="receipt.pdf"
+Content-Type: application/pdf
+
+< ./tiny.pdf
+------docBoundary--
+
+### Upload missing sample (ожидание 404)
+POST {{baseUrl}}/samples/999999/documents
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=----docBoundary
+
+------docBoundary
+Content-Disposition: form-data; name="file"; filename="receipt.pdf"
+Content-Type: application/pdf
+
+< ./tiny.pdf
+------docBoundary--
+
+### Upload wrong type .txt (ожидание 400 Only images and PDF)
+POST {{baseUrl}}/samples/1/documents
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=----docBoundary
+
+------docBoundary
+Content-Disposition: form-data; name="file"; filename="notes.txt"
+Content-Type: text/plain
+
+hello
+------docBoundary--
+
+### List missing sample (ожидание 404)
+GET {{baseUrl}}/samples/999999/documents

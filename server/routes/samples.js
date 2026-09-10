@@ -1,21 +1,21 @@
 'use strict';
 
 /**
- * /samples — фазы 4 и 5 (карточка, статус, история).
+ * /samples — фазы 4–6 (карточка, статус, история, документы).
  *
- * GET  /samples, GET /samples/:id, GET /samples/:id/history — без токена.
- * POST/PUT/DELETE — JWT + для изменения владелец.
- * PATCH /samples/:id/status — JWT + владелец, один шаг по карте статусов.
+ * GET  /samples, /:id, /:id/history, /:id/documents — без токена.
+ * POST/PUT/DELETE/PATCH status — JWT; чужую карточку режет ownerOnly.
+ * POST /:id/documents — JWT, образец должен существовать (владелец образца не обязателен).
  *
- * Более длинные пути (/:id/status, /:id/history) объявляем раньше /:id,
- * чтобы «history» не попал в param id, если кто-то позже добавит catch-all.
- *
- * Роутов PUT/PATCH/DELETE /events нет: лента INSERT-only (фаза 5.7).
+ * Более длинные пути объявляем раньше /:id.
+ * DELETE /documents/:id — отдельный роутер, вторая половина фазы 6.
  */
 
 const express = require('express');
 const sampleController = require('../controllers/sampleController');
+const documentController = require('../controllers/documentController');
 const { authRequired } = require('../middleware/auth');
+const { uploadDocument } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -23,6 +23,14 @@ router.post('/', authRequired, sampleController.create);
 router.get('/', sampleController.list);
 router.patch('/:id/status', authRequired, sampleController.changeStatus);
 router.get('/:id/history', sampleController.getHistory);
+router.post(
+  '/:id/documents',
+  authRequired,
+  documentController.requireSample,
+  uploadDocument,
+  documentController.create
+);
+router.get('/:id/documents', documentController.list);
 router.get('/:id', sampleController.getById);
 router.put('/:id', authRequired, sampleController.update);
 router.delete('/:id', authRequired, sampleController.remove);

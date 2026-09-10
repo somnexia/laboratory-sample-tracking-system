@@ -27,12 +27,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+// Файлы с диска: GET /uploads/<имя> → server/uploads/<имя>. Не путать с JSON API.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/', indexRouter);
 // Открытые register/login и защищённый GET /auth/me
 app.use('/auth', authRouter);
-// GET карточки и history открытые. POST/PUT/DELETE/PATCH status — JWT.
-// Отдельного /events роутера нет: события только читаются через /samples/:id/history.
+// GET карточки, history и список документов — открытые.
+// POST/PUT/DELETE/PATCH status и POST documents — JWT.
 app.use('/samples', samplesRouter);
 
 app.use(notFoundHandler);
