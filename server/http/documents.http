@@ -2,7 +2,7 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 6, первая половина: POST/GET документов. DELETE ещё нет.
+# Фаза 6 упрощённая: POST/GET документов и DELETE своего файла.
 # Поле формы обязательно называется file (multipart/form-data).
 # Путь < ./tiny.pdf — относительно этой папки server/http/.
 
@@ -88,3 +88,29 @@ hello
 
 ### List missing sample (ожидание 404)
 GET {{baseUrl}}/samples/999999/documents
+
+############################################################
+# DELETE /documents/:id — владелец файла (user_id), не образца
+############################################################
+
+### Delete as user2 — чужой файл (ожидание 403)
+DELETE {{baseUrl}}/documents/{{uploadPdf.response.body.id}}
+Authorization: Bearer {{loginUser2.response.body.token}}
+
+### Delete without token (ожидание 401)
+DELETE {{baseUrl}}/documents/{{uploadPdf.response.body.id}}
+
+### Delete missing id (ожидание 404)
+DELETE {{baseUrl}}/documents/999999
+Authorization: Bearer {{login.response.body.token}}
+
+### Delete own file (ожидание 204, тело пустое)
+DELETE {{baseUrl}}/documents/{{uploadPdf.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+
+### File gone from list after delete
+GET {{baseUrl}}/samples/1/documents
+
+### Static file after delete (ожидание 404)
+GET {{baseUrl}}{{uploadPdf.response.body.file_path}}
+

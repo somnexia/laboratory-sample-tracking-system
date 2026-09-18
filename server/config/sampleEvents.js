@@ -12,7 +12,7 @@
  * STATUS_CHANGED     — PATCH /samples/:id/status
  * Чтение ленты        — GET /samples/:id/history (фаза 5). Менять события нельзя.
  * DOCUMENT_UPLOADED  — POST /samples/:id/documents (фаза 6)
- * DOCUMENT_DELETED   — DELETE /documents/:id (вторая половина фазы 6)
+ * DOCUMENT_DELETED   — DELETE /documents/:id
  * RATING_ADDED       — POST .../ratings
  * RATING_UPDATED     — PUT /ratings/:id
  * RATING_DELETED     — DELETE /ratings/:id

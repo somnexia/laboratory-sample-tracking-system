@@ -1,15 +1,15 @@
 'use strict';
 
 /**
- * HTTP документов образца (фаза 6, POST + GET).
+ * HTTP документов (фаза 6, упрощённая).
  *
  * POST: authRequired → образец существует → multer → сервис.
- * Проверка sample до multer: иначе 404 на несуществующий id оставил бы файл в uploads/.
- * GET список — открытый, как GET /samples/:id.
+ * GET список — открытый. DELETE /documents/:id — JWT + user_id файла (не created_by образца).
  */
 
 const documentService = require('../services/documentService');
 const sampleService = require('../services/sampleService');
+const { ownerOnly } = require('../middleware/auth');
 
 function handleError(error, res, next) {
   if (error.status) {
@@ -49,8 +49,22 @@ async function list(req, res, next) {
   }
 }
 
+async function remove(req, res, next) {
+  try {
+    const doc = await documentService.findByIdOrThrow(req.params.id);
+    if (ownerOnly(req, doc.user_id, res)) {
+      return undefined;
+    }
+    await documentService.remove(req.user.id, doc);
+    return res.status(204).end();
+  } catch (error) {
+    return handleError(error, res, next);
+  }
+}
+
 module.exports = {
   requireSample,
   create,
   list,
+  remove,
 };

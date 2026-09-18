@@ -9,7 +9,7 @@
  * Имя на диске не равно исходному: иначе два «report.pdf» перезапишут друг друга,
  * а «../../etc/passwd» мог бы выйти из папки uploads/.
  *
- * DELETE файла — вторая половина фазы 6.
+ * DELETE снимает файл с диска по basename из file_path (documentService.remove).
  */
 
 const fs = require('fs');

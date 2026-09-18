@@ -8,7 +8,7 @@
  * POST /:id/documents — JWT, образец должен существовать (владелец образца не обязателен).
  *
  * Более длинные пути объявляем раньше /:id.
- * DELETE /documents/:id — отдельный роутер, вторая половина фазы 6.
+ * DELETE /documents/:id — отдельный роутер routes/documents.js.
  */
 
 const express = require('express');

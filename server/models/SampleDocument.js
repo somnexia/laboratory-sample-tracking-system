@@ -6,7 +6,7 @@ const { Model } = require('sequelize');
  * SampleDocument — файл, прикреплённый к образцу (таблица sample_documents).
  *
  * Аналог Photo из ТЗ. Владелец файла — user_id (кто загрузил), не created_by образца.
- * POST /samples/:id/documents доступен любому с JWT; DELETE своего файла — позже.
+ * POST — любой с JWT; DELETE /documents/:id — только user_id загрузившего.
  * Удаление образца каскадом снимает строки (ON DELETE CASCADE).
  */
 module.exports = (sequelize, DataTypes) => {
