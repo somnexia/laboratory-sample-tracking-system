@@ -6,7 +6,7 @@ const { Model } = require('sequelize');
  * SampleRating — оценка качества образца 1–5 (таблица sample_ratings).
  *
  * UNIQUE (sample_id, user_id): один пользователь — одна оценка на образец.
- * Повторный POST той же пары → 400 (фаза 7).
+ * Повторный POST той же пары → 400 (фаза 7). Изменить оценку — PUT во второй половине.
  */
 module.exports = (sequelize, DataTypes) => {
   class SampleRating extends Model {

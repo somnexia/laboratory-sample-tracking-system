@@ -1,19 +1,19 @@
 'use strict';
 
 /**
- * /samples — фазы 4–6 (карточка, статус, история, документы).
+ * /samples — фазы 4–7 (карточка, статус, история, документы, оценки).
  *
- * GET  /samples, /:id, /:id/history, /:id/documents — без токена.
- * POST/PUT/DELETE/PATCH status — JWT; чужую карточку режет ownerOnly.
- * POST /:id/documents — JWT, образец должен существовать (владелец образца не обязателен).
+ * GET  /samples, /:id, /:id/history, /:id/documents, /:id/rating — без токена.
+ * POST /:id/ratings — JWT; повтор той же пары пользователь+образец → 400.
+ * PUT/DELETE оценки — отдельный роутер /ratings, вторая половина фазы 7.
  *
  * Более длинные пути объявляем раньше /:id.
- * DELETE /documents/:id — отдельный роутер routes/documents.js.
  */
 
 const express = require('express');
 const sampleController = require('../controllers/sampleController');
 const documentController = require('../controllers/documentController');
+const ratingController = require('../controllers/ratingController');
 const { authRequired } = require('../middleware/auth');
 const { uploadDocument } = require('../middleware/upload');
 
@@ -31,6 +31,8 @@ router.post(
   documentController.create
 );
 router.get('/:id/documents', documentController.list);
+router.post('/:id/ratings', authRequired, ratingController.create);
+router.get('/:id/rating', ratingController.getAverage);
 router.get('/:id', sampleController.getById);
 router.put('/:id', authRequired, sampleController.update);
 router.delete('/:id', authRequired, sampleController.remove);

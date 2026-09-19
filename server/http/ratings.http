@@ -1,0 +1,110 @@
+@baseUrl = http://localhost:3001
+@seedEmail = user1@example.com
+@seedPassword = password123
+
+# Фаза 7, первая половина: POST оценки и GET среднего.
+# PUT/DELETE /ratings/:id ещё нет.
+# Seed: user1 уже оценил образец #1 — повторный POST на #1 даст 400.
+
+### Login seed user1
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{seedEmail}}",
+  "password": "{{seedPassword}}"
+}
+
+### Login seed user2
+# @name loginUser2
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "{{seedPassword}}"
+}
+
+### Create sample to rate (чтобы не упереться в seed-оценку user1 на #1)
+# @name createSample
+POST {{baseUrl}}/samples
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Rating demo",
+  "type": "WATER",
+  "country": "Germany"
+}
+
+### Average before any rating (ожидание 200, average_rating null, ratings_count 0)
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}/rating
+
+### Add rating score 5 (ожидание 201)
+# @name addRating
+POST {{baseUrl}}/samples/{{createSample.response.body.id}}/ratings
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 5,
+  "comment": "Sample suitable for analysis"
+}
+
+### Average after one rating (ожидание 5 и count 1)
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}/rating
+
+### Same user rates again (ожидание 400 You have already rated this sample)
+POST {{baseUrl}}/samples/{{createSample.response.body.id}}/ratings
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 1
+}
+
+### user2 rates the same sample (ожидание 201) — среднее станет 4.5
+POST {{baseUrl}}/samples/{{createSample.response.body.id}}/ratings
+Authorization: Bearer {{loginUser2.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 4,
+  "comment": "Good quality"
+}
+
+### Average after two ratings (ожидание 4.5 и count 2)
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}/rating
+
+### Seed sample #1 average (ожидание 200, у seed уже есть оценки)
+GET {{baseUrl}}/samples/1/rating
+
+### Score 6 (ожидание 400)
+POST {{baseUrl}}/samples/{{createSample.response.body.id}}/ratings
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 6
+}
+
+### Without token (ожидание 401)
+POST {{baseUrl}}/samples/{{createSample.response.body.id}}/ratings
+Content-Type: application/json
+
+{
+  "score": 5
+}
+
+### Missing sample (ожидание 404)
+POST {{baseUrl}}/samples/999999/ratings
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 5
+}
+
+### Average missing sample (ожидание 404)
+GET {{baseUrl}}/samples/999999/rating

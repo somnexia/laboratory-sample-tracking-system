@@ -357,4 +357,5 @@ module.exports = {
   changeStatus,
   getHistory,
   publicSample,
+  ratingStats,
 };
