@@ -14,8 +14,8 @@
  * DOCUMENT_UPLOADED  — POST /samples/:id/documents (фаза 6)
  * DOCUMENT_DELETED   — DELETE /documents/:id
  * RATING_ADDED       — POST /samples/:id/ratings (фаза 7)
- * RATING_UPDATED     — PUT /ratings/:id (вторая половина фазы 7)
- * RATING_DELETED     — DELETE /ratings/:id (вторая половина фазы 7)
+ * RATING_UPDATED     — PUT /ratings/:id
+ * RATING_DELETED     — DELETE /ratings/:id
  */
 
 const EVENT_ACTIONS = [

@@ -2,8 +2,7 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 7, первая половина: POST оценки и GET среднего.
-# PUT/DELETE /ratings/:id ещё нет.
+# Фаза 7: POST/GET среднего и PUT/DELETE своей оценки.
 # Seed: user1 уже оценил образец #1 — повторный POST на #1 даст 400.
 
 ### Login seed user1
@@ -108,3 +107,74 @@ Content-Type: application/json
 
 ### Average missing sample (ожидание 404)
 GET {{baseUrl}}/samples/999999/rating
+
+############################################################
+# PUT / DELETE /ratings/:id — владелец оценки (user_id)
+############################################################
+
+### Update as user2 — чужая оценка (ожидание 403)
+PUT {{baseUrl}}/ratings/{{addRating.response.body.id}}
+Authorization: Bearer {{loginUser2.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 1
+}
+
+### Update own rating 5 → 3 (ожидание 200, среднее пересчитается)
+PUT {{baseUrl}}/ratings/{{addRating.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 3,
+  "comment": "Updated after visual check"
+}
+
+### Average after PUT (user1=3, user2=4 → 3.5)
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}/rating
+
+### Update invalid score (ожидание 400)
+PUT {{baseUrl}}/ratings/{{addRating.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 9
+}
+
+### Update without token (ожидание 401)
+PUT {{baseUrl}}/ratings/{{addRating.response.body.id}}
+Content-Type: application/json
+
+{
+  "score": 2
+}
+
+### Update missing id (ожидание 404)
+PUT {{baseUrl}}/ratings/999999
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "score": 2
+}
+
+### Delete as user2 (ожидание 403)
+DELETE {{baseUrl}}/ratings/{{addRating.response.body.id}}
+Authorization: Bearer {{loginUser2.response.body.token}}
+
+### Delete without token (ожидание 401)
+DELETE {{baseUrl}}/ratings/{{addRating.response.body.id}}
+
+### Delete missing id (ожидание 404)
+DELETE {{baseUrl}}/ratings/999999
+Authorization: Bearer {{login.response.body.token}}
+
+### Delete own rating (ожидание 204)
+DELETE {{baseUrl}}/ratings/{{addRating.response.body.id}}
+Authorization: Bearer {{login.response.body.token}}
+
+### Average after DELETE user1 — осталась оценка user2 (4 и count 1)
+GET {{baseUrl}}/samples/{{createSample.response.body.id}}/rating
+

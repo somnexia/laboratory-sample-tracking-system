@@ -1,17 +1,20 @@
 'use strict';
 
 /**
- * Оценки образца 1–5 (фаза 7, первая половина: поставить и прочитать среднее).
+ * Оценки образца 1–5 (фаза 7).
  *
- * Один пользователь — одна строка на образец (UNIQUE sample_id + user_id).
- * Повторный POST → 400, не вторая звезда. Иначе среднее считалось бы дважды.
- *
- * PUT/DELETE своей оценки — вторая половина фазы 7.
+ * POST + GET среднее — поставить и прочитать сводку.
+ * PUT/DELETE — только user_id оценки, не created_by образца.
+ * Один пользователь — одна строка на образец (UNIQUE). После DELETE можно POST снова.
  */
 
 const { SampleRating, SampleEvent, sequelize } = require('../models');
 const sampleService = require('./sampleService');
 const { AppError } = require('./appError');
+
+function hasOwn(body, key) {
+  return Object.prototype.hasOwnProperty.call(body, key);
+}
 
 function publicRating(row) {
   return {
@@ -32,13 +35,18 @@ function parseScore(value) {
   return score;
 }
 
+function parseComment(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  return String(value);
+}
+
 async function create(userId, sampleId, body) {
   const sample = await sampleService.findByIdOrThrow(sampleId);
   const payload = body || {};
   const score = parseScore(payload.score);
-  const comment = payload.comment == null || payload.comment === ''
-    ? null
-    : String(payload.comment);
+  const comment = parseComment(payload.comment);
 
   const existing = await SampleRating.findOne({
     where: { sample_id: sample.id, user_id: userId },
@@ -90,8 +98,70 @@ async function getAverage(sampleId) {
   };
 }
 
+async function findByIdOrThrow(id) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId < 1) {
+    throw new AppError(404, 'Rating not found');
+  }
+
+  const row = await SampleRating.findByPk(numericId);
+  if (!row) {
+    throw new AppError(404, 'Rating not found');
+  }
+
+  return row;
+}
+
+/**
+ * Меняем score и/или comment. sample_id и user_id из body не читаем:
+ * нельзя «перевесить» чужую оценку на себя или на другой образец.
+ */
+async function update(userId, rating, body) {
+  const payload = body || {};
+  const previousScore = String(rating.score);
+
+  if (hasOwn(payload, 'score')) {
+    rating.score = parseScore(payload.score);
+  }
+  if (hasOwn(payload, 'comment')) {
+    rating.comment = parseComment(payload.comment);
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    await rating.save({ transaction });
+    await SampleEvent.create({
+      sample_id: rating.sample_id,
+      user_id: userId,
+      action: 'RATING_UPDATED',
+      old_value: previousScore,
+      new_value: String(rating.score),
+    }, { transaction });
+  });
+
+  return publicRating(rating);
+}
+
+async function remove(userId, rating) {
+  const previousScore = String(rating.score);
+  const sampleId = rating.sample_id;
+
+  await sequelize.transaction(async (transaction) => {
+    await SampleEvent.create({
+      sample_id: sampleId,
+      user_id: userId,
+      action: 'RATING_DELETED',
+      old_value: previousScore,
+      new_value: null,
+    }, { transaction });
+    await rating.destroy({ transaction });
+  });
+}
+
 module.exports = {
   create,
   getAverage,
+  findByIdOrThrow,
+  update,
+  remove,
   publicRating,
 };

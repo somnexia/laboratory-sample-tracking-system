@@ -18,6 +18,7 @@ const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
 const samplesRouter = require('./routes/samples');
 const documentsRouter = require('./routes/documents');
+const ratingsRouter = require('./routes/ratings');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -39,6 +40,8 @@ app.use('/auth', authRouter);
 app.use('/samples', samplesRouter);
 // DELETE своего файла. Не монтировать под /samples: id здесь — id документа.
 app.use('/documents', documentsRouter);
+// PUT/DELETE своей оценки. id здесь — id строки sample_ratings.
+app.use('/ratings', ratingsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

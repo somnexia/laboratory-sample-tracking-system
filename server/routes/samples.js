@@ -5,7 +5,7 @@
  *
  * GET  /samples, /:id, /:id/history, /:id/documents, /:id/rating — без токена.
  * POST /:id/ratings — JWT; повтор той же пары пользователь+образец → 400.
- * PUT/DELETE оценки — отдельный роутер /ratings, вторая половина фазы 7.
+ * PUT/DELETE оценки — отдельный роутер /ratings.
  *
  * Более длинные пути объявляем раньше /:id.
  */
