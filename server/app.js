@@ -19,6 +19,7 @@ const authRouter = require('./routes/auth');
 const samplesRouter = require('./routes/samples');
 const documentsRouter = require('./routes/documents');
 const ratingsRouter = require('./routes/ratings');
+const { mountSwagger } = require('./config/swagger');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -31,6 +32,9 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 // Файлы с диска: GET /uploads/<имя> → server/uploads/<имя>. Не путать с JSON API.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Интерактивная документация OpenAPI (Swagger UI). До роутов API и до 404.
+mountSwagger(app);
 
 app.use('/', indexRouter);
 // Открытые register/login и защищённый GET /auth/me

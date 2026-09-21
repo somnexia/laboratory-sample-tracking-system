@@ -21,7 +21,7 @@ router.get('/api', function getApiIndex(req, res) {
   res.json({
     name: 'Laboratory Sample Tracking API',
     version: '0.0.0',
-    documentation: '/api-docs (Swagger will be added later)',
+    documentation: '/api-docs',
     contract: '/docs in repository: docs/api-contract.md',
     enums: {
       sample_types: SAMPLE_TYPES,
