@@ -1,10 +1,14 @@
 @baseUrl = http://localhost:3001
 
-# Фаза 8.1: фильтры списка. Без токена.
-# Пустой результат — [] и 200. Неизвестный type/status — 400.
-# ?sort=... в этой части ещё не работает (порядок как раньше: новые сверху).
+# Фаза 8.1 — фильтры. Фаза 8.2 — sort по дате.
+# Без токена. Пустой результат — [] и 200.
+# sort=rating пока 400 (часть 8.3).
 
-### All samples (без фильтра)
+############################################################
+# 8.1 Фильтры
+############################################################
+
+### All samples (без фильтра, порядок: новые сверху)
 GET {{baseUrl}}/samples
 
 ### Filter country=USA (точное совпадение)
@@ -30,3 +34,28 @@ GET {{baseUrl}}/samples?type=MAGIC
 
 ### Invalid status (ожидание 400)
 GET {{baseUrl}}/samples?status=LOST
+
+############################################################
+# 8.2 Сортировка по дате (created_at)
+############################################################
+
+### Newest first — sort=created_at (то же что created_at_desc)
+GET {{baseUrl}}/samples?sort=created_at
+
+### Newest first — явный alias
+GET {{baseUrl}}/samples?sort=created_at_desc
+
+### Oldest first
+GET {{baseUrl}}/samples?sort=created_at_asc
+
+### Filter + sort: только USA, старые сверху
+GET {{baseUrl}}/samples?country=USA&sort=created_at_asc
+
+### Filter + sort: WATER, новые сверху
+GET {{baseUrl}}/samples?type=WATER&sort=created_at_desc
+
+### sort=rating ещё не готов (ожидание 400)
+GET {{baseUrl}}/samples?sort=rating
+
+### Неизвестное значение sort (ожидание 400)
+GET {{baseUrl}}/samples?sort=name

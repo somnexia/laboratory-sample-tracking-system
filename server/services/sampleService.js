@@ -6,7 +6,8 @@
  * POST + GET — создать с JWT, читать без токена.
  * PUT + DELETE — только created_by; поля карточки, не status.
  * PATCH status — один шаг по карте ALLOWED_TRANSITIONS, событие STATUS_CHANGED.
- * GET /samples читает query country/type/status (фаза 8.1). sort — части 8.2–8.3.
+ * GET /samples: фильтры country/type/status (8.1) и sort по дате (8.2).
+ * sort=rating — часть 8.3, пока 400.
  */
 
 const { Op } = require('sequelize');
@@ -198,11 +199,39 @@ function buildListWhere(query) {
   return where;
 }
 
-/** Список. Порядок пока всегда created_at DESC (сортировка query — части 8.2–8.3). */
+/**
+ * Порядок списка (фаза 8, часть 2 — только дата).
+ *
+ * Нет sort / пустая строка → created_at DESC (как раньше: новые сверху).
+ * created_at и created_at_desc — одно и то же; created_at_asc — старые сверху.
+ * rating* здесь ещё нельзя: среднее не колонка таблицы (часть 8.3).
+ * Вторичный ключ id — чтобы при одинаковой дате порядок был стабильным.
+ */
+function buildListOrder(query) {
+  const raw = query && query.sort != null ? String(query.sort).trim() : '';
+  if (!raw) {
+    return [['created_at', 'DESC'], ['id', 'DESC']];
+  }
+
+  if (raw === 'created_at' || raw === 'created_at_desc') {
+    return [['created_at', 'DESC'], ['id', 'DESC']];
+  }
+  if (raw === 'created_at_asc') {
+    return [['created_at', 'ASC'], ['id', 'ASC']];
+  }
+
+  if (raw === 'rating' || raw === 'rating_desc' || raw === 'rating_asc') {
+    throw new AppError(400, 'sort by rating is not implemented yet');
+  }
+
+  throw new AppError(400, 'sort is invalid');
+}
+
+/** Список: сначала WHERE (фильтр), потом ORDER BY (порядок). */
 async function list(query) {
   const rows = await Sample.findAll({
     where: buildListWhere(query),
-    order: [['created_at', 'DESC']],
+    order: buildListOrder(query),
   });
   const result = [];
   for (const row of rows) {

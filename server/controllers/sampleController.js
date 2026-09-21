@@ -3,7 +3,7 @@
 /**
  * HTTP для samples: CRUD (фаза 4), статус и history (фаза 5).
  *
- * GET список читает ?country & type & status (фаза 8.1). sort пока не читаем.
+ * GET список: ?country/type/status (8.1) и ?sort=created_at… (8.2).
  * POST/PUT/DELETE/PATCH status — JWT; чужую запись режет ownerOnly → 403.
  * Менять и удалять строки sample_events этим контроллером нельзя.
  */
