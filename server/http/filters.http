@@ -1,0 +1,32 @@
+@baseUrl = http://localhost:3001
+
+# Фаза 8.1: фильтры списка. Без токена.
+# Пустой результат — [] и 200. Неизвестный type/status — 400.
+# ?sort=... в этой части ещё не работает (порядок как раньше: новые сверху).
+
+### All samples (без фильтра)
+GET {{baseUrl}}/samples
+
+### Filter country=USA (точное совпадение)
+GET {{baseUrl}}/samples?country=USA
+
+### Filter type=WATER
+GET {{baseUrl}}/samples?type=WATER
+
+### Filter status=STORED
+GET {{baseUrl}}/samples?status=STORED
+
+### Combination country + type (оба условия сразу, логика AND)
+GET {{baseUrl}}/samples?country=USA&type=BIOLOGICAL
+
+### Combination country + type + status
+GET {{baseUrl}}/samples?country=USA&type=DNA&status=ANALYZED
+
+### Unknown country — пустой список, не 404
+GET {{baseUrl}}/samples?country=Atlantis
+
+### Invalid type (ожидание 400)
+GET {{baseUrl}}/samples?type=MAGIC
+
+### Invalid status (ожидание 400)
+GET {{baseUrl}}/samples?status=LOST

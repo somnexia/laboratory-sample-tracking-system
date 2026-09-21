@@ -48,9 +48,14 @@ function canTransition(from, to) {
   return Array.isArray(allowed) && allowed.includes(to);
 }
 
+function isValidStatus(status) {
+  return SAMPLE_STATUSES.includes(status);
+}
+
 module.exports = {
   SAMPLE_STATUSES,
   DEFAULT_STATUS,
   ALLOWED_TRANSITIONS,
   canTransition,
+  isValidStatus,
 };

@@ -6,13 +6,13 @@
  * POST + GET — создать с JWT, читать без токена.
  * PUT + DELETE — только created_by; поля карточки, не status.
  * PATCH status — один шаг по карте ALLOWED_TRANSITIONS, событие STATUS_CHANGED.
- * GET /history — открытая лента sample_events; строк событий API не меняет.
+ * GET /samples читает query country/type/status (фаза 8.1). sort — части 8.2–8.3.
  */
 
 const { Op } = require('sequelize');
 const { Sample, SampleEvent, SampleRating, sequelize } = require('../models');
 const { isValidType } = require('../config/sampleTypes');
-const { DEFAULT_STATUS, canTransition } = require('../config/sampleStatuses');
+const { DEFAULT_STATUS, canTransition, isValidStatus } = require('../config/sampleStatuses');
 const { AppError } = require('./appError');
 
 function hasOwn(body, key) {
@@ -164,9 +164,44 @@ async function create(userId, body) {
   return toResponse(sample);
 }
 
-/** Список без query-фильтров (фаза 8). Пустой результат — [] и 200. */
-async function list() {
+/**
+ * Query-фильтры списка (фаза 8, часть 1).
+ *
+ * Это WHERE, не сортировка: «какие строки», а не «в каком порядке».
+ * Пустой параметр не фильтрует. Неизвестный type/status → 400 (как при POST).
+ * Несуществующая страна → [] и 200, не 404: список умеет быть пустым.
+ */
+function buildListWhere(query) {
+  const where = {};
+  const q = query || {};
+
+  if (q.country != null && String(q.country).trim() !== '') {
+    where.country = String(q.country).trim();
+  }
+
+  if (q.type != null && String(q.type).trim() !== '') {
+    const type = String(q.type).trim();
+    if (!isValidType(type)) {
+      throw new AppError(400, 'type is invalid');
+    }
+    where.type = type;
+  }
+
+  if (q.status != null && String(q.status).trim() !== '') {
+    const status = String(q.status).trim();
+    if (!isValidStatus(status)) {
+      throw new AppError(400, 'status is invalid');
+    }
+    where.status = status;
+  }
+
+  return where;
+}
+
+/** Список. Порядок пока всегда created_at DESC (сортировка query — части 8.2–8.3). */
+async function list(query) {
   const rows = await Sample.findAll({
+    where: buildListWhere(query),
     order: [['created_at', 'DESC']],
   });
   const result = [];

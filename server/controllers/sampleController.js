@@ -3,7 +3,7 @@
 /**
  * HTTP для samples: CRUD (фаза 4), статус и history (фаза 5).
  *
- * GET карточки и GET /history — без токена (как просмотр landmark в ТЗ).
+ * GET список читает ?country & type & status (фаза 8.1). sort пока не читаем.
  * POST/PUT/DELETE/PATCH status — JWT; чужую запись режет ownerOnly → 403.
  * Менять и удалять строки sample_events этим контроллером нельзя.
  */
@@ -42,7 +42,7 @@ async function create(req, res, next) {
 
 async function list(req, res, next) {
   try {
-    const samples = await sampleService.list();
+    const samples = await sampleService.list(req.query);
     return res.status(200).json(samples);
   } catch (error) {
     return handleError(error, res, next);
