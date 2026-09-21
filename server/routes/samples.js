@@ -1,13 +1,22 @@
 'use strict';
 
 /**
- * /samples — фазы 4–7 (карточка, статус, история, документы, оценки).
+ * Роутер /samples — привязка URL к handler'ам.
  *
- * GET  /samples, /:id, /:id/history, /:id/documents, /:id/rating — без токена.
- * POST /:id/ratings — JWT; повтор той же пары пользователь+образец → 400.
- * PUT/DELETE оценки — отдельный роутер /ratings.
+ * Состав:
+ *   express.Router() — мини-приложение для путей после /samples;
+ *   router.METHOD(path, ...middleware, handler) — цепочка слева направо;
+ *   app.use('/samples', этот роутер) в app.js.
  *
- * Более длинные пути объявляем раньше /:id.
+ * Middleware на маршрутах:
+ *   authRequired   — JWT → req.user (middleware/auth.js);
+ *   uploadDocument — multer, поле file → uploads/ (только POST documents);
+ *   requireSample  — образец существует до записи файла на диск.
+ *
+ * Длинные пути (/:id/history, /:id/rating, /:id/documents) объявляем раньше /:id,
+ * иначе Express принял бы «history» за значение param id.
+ *
+ * GET / — открытый список; query country/type/status/sort читает сервис.
  */
 
 const express = require('express');

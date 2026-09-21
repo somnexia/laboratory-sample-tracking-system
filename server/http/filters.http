@@ -1,17 +1,16 @@
 @baseUrl = http://localhost:3001
 
-# Фаза 8.1 — фильтры. Фаза 8.2 — sort по дате.
-# Без токена. Пустой результат — [] и 200.
-# sort=rating пока 400 (часть 8.3).
+# Список образцов: фильтры и сортировка. Без токена.
+# Пустой результат — [] и 200. Неизвестный type/status/sort — 400.
 
 ############################################################
-# 8.1 Фильтры
+# Фильтры (какие строки)
 ############################################################
 
-### All samples (без фильтра, порядок: новые сверху)
+### All samples (без фильтра, по умолчанию новые сверху)
 GET {{baseUrl}}/samples
 
-### Filter country=USA (точное совпадение)
+### Filter country=USA
 GET {{baseUrl}}/samples?country=USA
 
 ### Filter type=WATER
@@ -20,7 +19,7 @@ GET {{baseUrl}}/samples?type=WATER
 ### Filter status=STORED
 GET {{baseUrl}}/samples?status=STORED
 
-### Combination country + type (оба условия сразу, логика AND)
+### Combination country + type (AND)
 GET {{baseUrl}}/samples?country=USA&type=BIOLOGICAL
 
 ### Combination country + type + status
@@ -36,26 +35,36 @@ GET {{baseUrl}}/samples?type=MAGIC
 GET {{baseUrl}}/samples?status=LOST
 
 ############################################################
-# 8.2 Сортировка по дате (created_at)
+# Сортировка по дате
 ############################################################
 
-### Newest first — sort=created_at (то же что created_at_desc)
+### Newest first — sort=created_at
 GET {{baseUrl}}/samples?sort=created_at
 
-### Newest first — явный alias
+### Newest first — alias created_at_desc
 GET {{baseUrl}}/samples?sort=created_at_desc
 
 ### Oldest first
 GET {{baseUrl}}/samples?sort=created_at_asc
 
-### Filter + sort: только USA, старые сверху
+### Filter + date sort: USA, старые сверху
 GET {{baseUrl}}/samples?country=USA&sort=created_at_asc
 
-### Filter + sort: WATER, новые сверху
-GET {{baseUrl}}/samples?type=WATER&sort=created_at_desc
+############################################################
+# Сортировка по среднему рейтингу
+############################################################
 
-### sort=rating ещё не готов (ожидание 400)
+### Highest average first (rating = rating_desc)
 GET {{baseUrl}}/samples?sort=rating
+
+### Highest average first — явный alias
+GET {{baseUrl}}/samples?sort=rating_desc
+
+### Lowest average first (образцы без оценок в конце)
+GET {{baseUrl}}/samples?sort=rating_asc
+
+### Filter + rating: только USA, лучшие сверху
+GET {{baseUrl}}/samples?country=USA&sort=rating
 
 ### Неизвестное значение sort (ожидание 400)
 GET {{baseUrl}}/samples?sort=name

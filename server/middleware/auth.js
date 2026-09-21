@@ -1,27 +1,31 @@
 'use strict';
 
 /**
- * Безопасность запросов (фаза 3).
+ * Middleware безопасности HTTP-запросов.
  *
- * Два разных отказа:
- *   401 — «кто ты?»  нет/битый JWT (authRequired)
- *   403 — «ты не владелец»  токен валидный, но запись чужая (ownerOnly)
+ * Middleware — функция (req, res, next) в цепочке до контроллера:
+ *   - может ответить ошибкой и остановить цепочку;
+ *   - или вызвать next() и передать управление дальше.
  *
- * Цепочка для PUT/DELETE/PATCH status образца:
+ * Два отказа:
+ *   401 — «кто ты?» (нет / битый JWT) — authRequired;
+ *   403 — «ты не владелец» (токен ок, запись чужая) — ownerOnly.
+ *
+ * Цепочка изменения образца:
  *   authRequired → контроллер грузит sample → ownerOnly(req, sample.created_by, res)
  *
- * Для файла/оценки сравнивают user_id, не created_by образца.
+ * Для файла и оценки сравнивают user_id строки, не created_by образца.
  */
 
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
 
 /**
- * Проверяет Authorization: Bearer <jwt>.
- * Cookie не читаем — в ТЗ только заголовок Bearer.
+ * Проверяет заголовок Authorization: Bearer <jwt>.
+ * Cookie не читаем — в контракте только Bearer.
  *
  * Успех: req.user = { id, username } из payload (пароля там нет).
- * Дальше контроллер может искать пользователя в БД по id.
+ * Дальше контроллер может искать строку в БД по id.
  */
 function authRequired(req, res, next) {
   const header = req.headers.authorization || '';
@@ -58,8 +62,7 @@ function isOwner(userId, ownerId) {
  * Если текущий пользователь не владелец — отвечает 403 и возвращает true
  * (контроллер должен сразу выйти). Иначе false — можно менять запись.
  *
- * Зачем отдельный хелпер, а не middleware: владельца узнаём только после
- * SELECT по :id. Middleware не видит sample, пока контроллер его не загрузил.
+ * Отдельный хелпер, не middleware: владельца узнаём только после SELECT по :id.
  *
  * @example
  *   if (ownerOnly(req, sample.created_by, res)) return;

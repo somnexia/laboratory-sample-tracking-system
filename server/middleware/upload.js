@@ -1,15 +1,20 @@
 'use strict';
 
 /**
- * Загрузка файлов образца (фаза 6, первая половина).
+ * Приём бинарных файлов (PDF / изображения) через multer.
  *
- * JSON-парсер Express не читает файлы: клиент шлёт multipart/form-data,
- * multer вытаскивает поле `file` и кладёт байты на диск.
+ * Express.json() читает только текстовый JSON. Файл приходит как
+ * multipart/form-data; multer вытаскивает поле формы и пишет байты на диск.
  *
- * Имя на диске не равно исходному: иначе два «report.pdf» перезапишут друг друга,
- * а «../../etc/passwd» мог бы выйти из папки uploads/.
+ * Состав модуля:
+ *   UPLOADS_DIR   — папка server/uploads на диске;
+ *   EXT_BY_MIME   — какие Content-Type принимаем;
+ *   fileFilter    — отказ → AppError 400 до записи;
+ *   storage       — куда и под каким именем сохранить;
+ *   uploadDocument — готовый middleware .single('file') для роутера.
  *
- * DELETE снимает файл с диска по basename из file_path (documentService.remove).
+ * Имя на диске ≠ исходное filename: иначе два receipt.pdf перезапишут друг друга,
+ * а путь «../../» мог бы выйти из uploads/.
  */
 
 const fs = require('fs');
@@ -21,7 +26,7 @@ const { AppError } = require('../services/appError');
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-/** MIME, которые принимает учебный API (ТЗ: картинки и PDF). */
+/** MIME → расширение файла на диске. */
 const EXT_BY_MIME = {
   'application/pdf': '.pdf',
   'image/jpeg': '.jpg',
@@ -33,6 +38,7 @@ const EXT_BY_MIME = {
 
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
+/** Расширение: из имени клиента, иначе из MIME. */
 function extensionFor(file) {
   const fromName = path.extname(file.originalname || '').toLowerCase();
   if (/^\.(pdf|jpe?g|png|gif|webp)$/.test(fromName)) {
@@ -41,6 +47,10 @@ function extensionFor(file) {
   return EXT_BY_MIME[file.mimetype] || '';
 }
 
+/**
+ * Фильтр multer: true — принять, иначе callback с ошибкой.
+ * AppError(400) поймает errorHandler (у ошибки есть .status).
+ */
 function fileFilter(req, file, cb) {
   if (EXT_BY_MIME[file.mimetype]) {
     cb(null, true);
@@ -49,6 +59,11 @@ function fileFilter(req, file, cb) {
   cb(new AppError(400, 'Only images and PDF are allowed'));
 }
 
+/**
+ * Куда писать и как назвать файл на диске.
+ * destination — всегда UPLOADS_DIR;
+ * filename — timestamp + случайные байты + расширение.
+ */
 const storage = multer.diskStorage({
   destination(req, file, cb) {
     cb(null, UPLOADS_DIR);
@@ -60,8 +75,8 @@ const storage = multer.diskStorage({
 });
 
 /**
- * Один файл, поле формы строго `file` (как в api-contract.md).
- * Другое имя поля → MulterError LIMIT_UNEXPECTED_FILE → 400.
+ * Один файл, имя поля формы строго `file` (контракт API).
+ * Другое имя поля → MulterError LIMIT_UNEXPECTED_FILE → 400 в errorHandler.
  */
 const uploadDocument = multer({
   storage,

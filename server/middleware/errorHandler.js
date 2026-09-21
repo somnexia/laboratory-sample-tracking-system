@@ -1,11 +1,13 @@
 'use strict';
 
 /**
- * Ошибки API всегда JSON, не HTML (Jade отключён в фазе 0).
- * Формат: { "error": "..." } — как в docs/api-contract.md.
+ * Единый JSON-формат ошибок API: { "error": "..." }.
  *
- * Multer кидает MulterError без поля status (лимит размера, чужое имя поля).
- * fileFilter у нас отдаёт AppError(400) — его ловит ветка error.status.
+ * notFoundHandler — маршрут не совпал ни с одним router (в конце app.js).
+ * errorHandler    — ошибки из next(err) и из throw в async (через обёртки).
+ *
+ * Multer кидает MulterError без .status (лимит размера, чужое имя поля) —
+ * отдельная ветка → 400. AppError из fileFilter уже имеет .status.
  */
 
 const multer = require('multer');

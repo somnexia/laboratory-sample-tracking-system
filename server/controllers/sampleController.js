@@ -1,16 +1,28 @@
 'use strict';
 
 /**
- * HTTP для samples: CRUD (фаза 4), статус и history (фаза 5).
+ * HTTP-слой samples (контроллер).
  *
- * GET список: ?country/type/status (8.1) и ?sort=created_at… (8.2).
- * POST/PUT/DELETE/PATCH status — JWT; чужую запись режет ownerOnly → 403.
- * Менять и удалять строки sample_events этим контроллером нельзя.
+ * Из чего состоит:
+ *   - читает req (params, body, query, user от middleware);
+ *   - вызывает sampleService;
+ *   - ставит статус 200/201/204 и JSON;
+ *   - ошибки с error.status → { error: "..." }, остальное → next(errorHandler).
+ *
+ * Здесь нет SQL и нет правил «можно ли перейти в STORED» — это сервис.
+ * JWT проверяет middleware/auth до входа в create/update/remove/changeStatus.
+ *
+ * list: req.query → { country?, type?, status?, sort? } целиком уходит в service.list.
  */
 
 const sampleService = require('../services/sampleService');
 const { ownerOnly } = require('../middleware/auth');
 
+/**
+ * Разбор ошибок сервиса.
+ * AppError несёт .status (400, 403, 404…).
+ * Без .status — неожиданная ошибка, errorHandler отдаст 500.
+ */
 function handleError(error, res, next) {
   if (error.status) {
     return res.status(error.status).json({ error: error.message });
@@ -19,9 +31,12 @@ function handleError(error, res, next) {
 }
 
 /**
- * Загрузить образец и проверить владельца.
- * 404 — нет id; 403 — токен есть, но created_by другой.
- * null значит ответ уже отправлен (403/401).
+ * Загрузить образец и проверить владельца (PUT / DELETE / PATCH status).
+ *
+ * 1) findByIdOrThrow → 404, если id нет;
+ * 2) ownerOnly(req, sample.created_by, res) → true = уже ответили 401/403.
+ *
+ * Почему не middleware: владельца узнаём только после SELECT по :id.
  */
 async function loadOwnedSample(req, res) {
   const sample = await sampleService.findByIdOrThrow(req.params.id);
@@ -40,6 +55,10 @@ async function create(req, res, next) {
   }
 }
 
+/**
+ * Открытый список. Токен не нужен.
+ * Фильтр и сортировка — целиком в sampleService.list(req.query).
+ */
 async function list(req, res, next) {
   try {
     const samples = await sampleService.list(req.query);
@@ -78,7 +97,7 @@ async function remove(req, res, next) {
       return undefined;
     }
     await sampleService.remove(sample);
-    // 204 — успех без тела; json() сюда нельзя, клиент ждёт пустой ответ.
+    // 204 — успех без тела; клиент ждёт пустой ответ.
     return res.status(204).end();
   } catch (error) {
     return handleError(error, res, next);
@@ -99,7 +118,7 @@ async function changeStatus(req, res, next) {
   }
 }
 
-/** Открытая лента. Нет authRequired: историю смотрят так же, как карточку. */
+/** Открытая лента событий. Без authRequired — как просмотр карточки. */
 async function getHistory(req, res, next) {
   try {
     const events = await sampleService.getHistory(req.params.id);

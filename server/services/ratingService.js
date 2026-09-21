@@ -1,11 +1,14 @@
 'use strict';
 
 /**
- * Оценки образца 1–5 (фаза 7).
+ * Оценки качества образца (таблица sample_ratings), баллы 1–5.
  *
- * POST + GET среднее — поставить и прочитать сводку.
- * PUT/DELETE — только user_id оценки, не created_by образца.
- * Один пользователь — одна строка на образец (UNIQUE). После DELETE можно POST снова.
+ * create / getAverage — поставить оценку и прочитать среднее.
+ * update / remove — только user_id этой строки, не created_by образца.
+ * UNIQUE (sample_id, user_id): один пользователь — одна оценка; после DELETE можно POST снова.
+ *
+ * Среднее не хранится в samples: его считает ratingStats (AVG) — то же число,
+ * по которому сортирует GET /samples?sort=rating.
  */
 
 const { SampleRating, SampleEvent, sequelize } = require('../models');

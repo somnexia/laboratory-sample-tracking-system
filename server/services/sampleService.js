@@ -1,13 +1,17 @@
 'use strict';
 
 /**
- * CRUD образцов (фаза 4) и жизненный цикл (фаза 5).
+ * Сервис образцов — бизнес-правила для таблицы samples.
  *
- * POST + GET — создать с JWT, читать без токена.
- * PUT + DELETE — только created_by; поля карточки, не status.
- * PATCH status — один шаг по карте ALLOWED_TRANSITIONS, событие STATUS_CHANGED.
- * GET /samples: фильтры country/type/status (8.1) и sort по дате (8.2).
- * sort=rating — часть 8.3, пока 400.
+ * Слои приложения (запрос идёт сверху вниз):
+ *   routes      — какой URL вызывает какой handler
+ *   middleware  — JWT, multer, единый JSON-формат ошибок
+ *   controllers — HTTP-статусы и чтение req / запись res
+ *   services    — этот файл: валидация, транзакции, Sequelize
+ *   models      — описание колонок и связей MySQL
+ *
+ * average_rating не колонка samples: его считают из sample_ratings (AVG).
+ * Поэтому сортировка «по рейтингу» использует SQL-подзапрос, а не ORDER BY samples.xxx.
  */
 
 const { Op } = require('sequelize');
@@ -16,10 +20,15 @@ const { isValidType } = require('../config/sampleTypes');
 const { DEFAULT_STATUS, canTransition, isValidStatus } = require('../config/sampleStatuses');
 const { AppError } = require('./appError');
 
+/** Есть ли у объекта собственный ключ (даже если значение null). */
 function hasOwn(body, key) {
   return Object.prototype.hasOwnProperty.call(body, key);
 }
 
+/**
+ * Целое число или null для research_id / experiment_id.
+ * Пустая строка и отсутствие поля → null; «abc» → 400.
+ */
 function optionalInt(value, fieldName) {
   if (value === undefined || value === null || value === '') {
     return null;
@@ -31,7 +40,11 @@ function optionalInt(value, fieldName) {
   return n;
 }
 
-/** location NULL и пустая строка считаем одним и тем же «места нет». */
+/**
+ * Нормализация места хранения.
+ * undefined — «поле в запросе не присылали» (при PUT не трогаем).
+ * null / '' / пробелы — «места нет», в БД пишем null.
+ */
 function normalizeLocation(value) {
   if (value === undefined) {
     return undefined;
@@ -43,6 +56,7 @@ function normalizeLocation(value) {
   return text === '' ? null : text;
 }
 
+/** Значение для sample_events.old_value / new_value (лимит VARCHAR 255). */
 function eventValue(value) {
   if (value == null) {
     return null;
@@ -51,6 +65,10 @@ function eventValue(value) {
   return text.length > 255 ? text.slice(0, 255) : text;
 }
 
+/**
+ * Публичные поля карточки без «внутренностей» Sequelize.
+ * Пароль сюда не попадает: его нет у Sample.
+ */
 function publicSample(sample) {
   return {
     id: sample.id,
@@ -69,6 +87,13 @@ function publicSample(sample) {
   };
 }
 
+/**
+ * Среднее и число оценок для одного образца.
+ *
+ * Состав SQL: AVG(score), COUNT(id) по sample_ratings WHERE sample_id = ?
+ * Нет строк → average_rating null, ratings_count 0 (не «ноль баллов»).
+ * toFixed(2) — удобный JSON (4.5), без длинного хвоста float.
+ */
 async function ratingStats(sampleId) {
   const row = await SampleRating.findOne({
     where: { sample_id: sampleId },
@@ -88,14 +113,15 @@ async function ratingStats(sampleId) {
   };
 }
 
+/** Карточка + average_rating + ratings_count — один формат для GET :id и элемента списка. */
 async function toResponse(sample) {
   const stats = await ratingStats(sample.id);
   return { ...publicSample(sample), ...stats };
 }
 
 /**
- * Следующий код в текущем UTC-году.
- * Seed уже занял SAM-2026-000124…128 — новый POST получит 000129 и дальше.
+ * Следующий уникальный код SAM-YYYY-NNNNNN в текущем UTC-году.
+ * Берём максимальный код с префиксом года и +1; seed уже занял часть номеров.
  */
 async function nextSampleCode(transaction) {
   const year = new Date().getUTCFullYear();
@@ -117,6 +143,12 @@ async function nextSampleCode(transaction) {
   return prefix + String(next).padStart(6, '0');
 }
 
+/**
+ * Создание образца.
+ * Обязательны name, type, country. Код и статус выдаёт сервер (RECEIVED).
+ * created_by — из JWT (userId), не из body.
+ * В одной транзакции: INSERT samples + событие SAMPLE_CREATED.
+ */
 async function create(userId, body) {
   const name = String(body.name || '').trim();
   const type = String(body.type || '').trim();
@@ -166,11 +198,18 @@ async function create(userId, body) {
 }
 
 /**
- * Query-фильтры списка (фаза 8, часть 1).
+ * Сборка WHERE для GET /samples из query-параметров.
  *
- * Это WHERE, не сортировка: «какие строки», а не «в каком порядке».
- * Пустой параметр не фильтрует. Неизвестный type/status → 400 (как при POST).
- * Несуществующая страна → [] и 200, не 404: список умеет быть пустым.
+ * Вход: req.query, например { country: 'USA', type: 'WATER' }.
+ * Выход: объект для Sequelize.findAll({ where }).
+ *
+ * Правила:
+ *   - параметра нет или пустая строка → поле не добавляем (не фильтруем);
+ *   - country — точное совпадение строки;
+ *   - type / status — только значения из ENUM (config), иначе 400;
+ *   - несколько ключей сразу → AND (все условия вместе).
+ *
+ * Это «какие строки», не «в каком порядке» (порядок — parseListSort).
  */
 function buildListWhere(query) {
   const where = {};
@@ -200,38 +239,118 @@ function buildListWhere(query) {
 }
 
 /**
- * Порядок списка (фаза 8, часть 2 — только дата).
+ * Разбор ?sort=… в понятную структуру { kind, direction }.
  *
- * Нет sort / пустая строка → created_at DESC (как раньше: новые сверху).
- * created_at и created_at_desc — одно и то же; created_at_asc — старые сверху.
- * rating* здесь ещё нельзя: среднее не колонка таблицы (часть 8.3).
- * Вторичный ключ id — чтобы при одинаковой дате порядок был стабильным.
+ * kind:
+ *   created_at — колонка samples.created_at
+ *   rating     — среднее из sample_ratings (подзапрос AVG)
+ * direction: 'ASC' | 'DESC'
+ *
+ * Алиасы контракта:
+ *   (нет) / created_at / created_at_desc → дата, новые сверху
+ *   created_at_asc                       → дата, старые сверху
+ *   rating / rating_desc                  → среднее, выше сверху
+ *   rating_asc                            → среднее, ниже сверху
+ *   иное                                  → 400 sort is invalid
+ *
+ * Зачем не сразу массив order: для даты и рейтинга разные SQL ORDER BY.
  */
-function buildListOrder(query) {
+function parseListSort(query) {
   const raw = query && query.sort != null ? String(query.sort).trim() : '';
-  if (!raw) {
-    return [['created_at', 'DESC'], ['id', 'DESC']];
-  }
 
-  if (raw === 'created_at' || raw === 'created_at_desc') {
-    return [['created_at', 'DESC'], ['id', 'DESC']];
+  if (!raw || raw === 'created_at' || raw === 'created_at_desc') {
+    return { kind: 'created_at', direction: 'DESC' };
   }
   if (raw === 'created_at_asc') {
-    return [['created_at', 'ASC'], ['id', 'ASC']];
+    return { kind: 'created_at', direction: 'ASC' };
   }
-
-  if (raw === 'rating' || raw === 'rating_desc' || raw === 'rating_asc') {
-    throw new AppError(400, 'sort by rating is not implemented yet');
+  if (raw === 'rating' || raw === 'rating_desc') {
+    return { kind: 'rating', direction: 'DESC' };
+  }
+  if (raw === 'rating_asc') {
+    return { kind: 'rating', direction: 'ASC' };
   }
 
   throw new AppError(400, 'sort is invalid');
 }
 
-/** Список: сначала WHERE (фильтр), потом ORDER BY (порядок). */
+/**
+ * SQL-подзапрос: AVG(score) для текущей строки списка.
+ *
+ * Коррелированный подзапрос: для каждой строки MySQL считает среднее
+ * по sample_ratings с тем же sample_id.
+ * Число совпадает с GET /samples/:id/rating → average_rating.
+ *
+ * Во внешнем SELECT Sequelize даёт таблице алиас `Sample` (modelName),
+ * поэтому сравниваем с `Sample`.`id`, а не с именем таблицы samples.
+ */
+function averageRatingSql() {
+  return `(
+    SELECT AVG(\`sample_ratings\`.\`score\`)
+    FROM \`sample_ratings\`
+    WHERE \`sample_ratings\`.\`sample_id\` = \`Sample\`.\`id\`
+  )`;
+}
+
+/**
+ * ORDER BY по дате создания.
+ * Вторичный ключ id — при одинаковой секунде created_at порядок стабильный.
+ */
+function orderByCreatedAt(direction) {
+  return [
+    ['created_at', direction],
+    ['id', direction],
+  ];
+}
+
+/**
+ * ORDER BY по среднему рейтингу.
+ *
+ * Три уровня:
+ *   1) (avg IS NULL) ASC — сначала образцы С оценками (false/0),
+ *      потом без оценок (true/1). Иначе в MySQL при DESC NULL
+ *      «всплывают» вверх как самые маленькие значения.
+ *   2) сам AVG — DESC (лучшие сверху) или ASC (худшие сверху).
+ *   3) id — тай-брейк при равном среднем.
+ *
+ * sequelize.literal — вставить SQL как есть.
+ * direction берём только из parseListSort ('ASC'|'DESC'), не сырую строку клиента.
+ */
+function orderByAverageRating(direction) {
+  const avg = averageRatingSql();
+  return [
+    [sequelize.literal(`(${avg}) IS NULL`), 'ASC'],
+    [sequelize.literal(avg), direction],
+    ['id', direction],
+  ];
+}
+
+/**
+ * Открытый список образцов.
+ *
+ * Шаги:
+ *   1. buildListWhere — фильтр (WHERE)
+ *   2. parseListSort  — какой вид сортировки
+ *   3. orderBy*       — массив для Sequelize order
+ *   4. findAll        — один SELECT
+ *   5. toResponse     — к каждой строке среднее и счётчик оценок
+ *
+ * Пустой набор → [] (контроллер отдаёт 200, не 404).
+ */
 async function list(query) {
+  const where = buildListWhere(query);
+  const sort = parseListSort(query);
+
+  const order = sort.kind === 'rating'
+    ? orderByAverageRating(sort.direction)
+    : orderByCreatedAt(sort.direction);
+
   const rows = await Sample.findAll({
-    where: buildListWhere(query),
-    order: buildListOrder(query),
+    where,
+    order,
+    // Иначе Sequelize может обернуть SELECT во вложенный запрос,
+    // и алиас Sample в ORDER BY / подзапросе перестанет быть виден.
+    subQuery: false,
   });
   const result = [];
   for (const row of rows) {
@@ -241,8 +360,8 @@ async function list(query) {
 }
 
 /**
- * Экземпляр модели или 404. Нужен контроллеру до ownerOnly:
- * сначала убеждаемся, что запись есть, потом сравниваем created_by.
+ * Модель Sample по id или 404.
+ * Нужна контроллеру до ownerOnly: сначала «есть ли запись», потом «твоя ли».
  */
 async function findByIdOrThrow(id) {
   const numericId = Number(id);
@@ -263,12 +382,10 @@ async function getById(id) {
 }
 
 /**
- * Поля карточки. sample_code / status / created_by клиент прислать может —
- * мы их не читаем: код выдаёт сервер, статус только PATCH (фаза 5),
- * владельца нельзя «переписать» на себя.
- *
- * Если изменился location — LOCATION_CHANGED (даже если параллельно меняли name).
- * Иначе SAMPLE_UPDATED. Код, статус и created_by из body не читаем.
+ * Обновление полей карточки владельцем.
+ * sample_code / status / created_by из body игнорируем:
+ *   код выдаёт сервер, статус — только changeStatus, владельца нельзя сменить.
+ * Сменилось location → LOCATION_CHANGED, иначе SAMPLE_UPDATED.
  */
 async function update(userId, sample, body) {
   const previousLocation = normalizeLocation(sample.location) ?? null;
@@ -343,17 +460,17 @@ async function update(userId, sample, body) {
 }
 
 /**
- * Удаление владельцем. Отдельного SAMPLE_DELETED нет: документы, оценки
- * и лента событий уходят каскадом с образцом (ON DELETE CASCADE).
+ * Удаление владельцем.
+ * Отдельного SAMPLE_DELETED нет: documents, ratings, events уходят CASCADE.
  */
 async function remove(sample) {
   await sample.destroy();
 }
 
 /**
- * Один шаг жизненного цикла. Нельзя перепрыгнуть (RECEIVED → STORED)
- * и нельзя отойти назад (DESTROYED → STORED): оба случая — одна 400.
- * Сообщение фиксировано контрактом, чтобы клиент не гадал формулировку.
+ * Один шаг статуса по карте ALLOWED_TRANSITIONS.
+ * Прыжок или шаг из DESTROYED → 400 «Invalid status transition».
+ * Успех: новая колонка status + событие STATUS_CHANGED (old/new).
  */
 async function changeStatus(userId, sample, body) {
   const nextStatus = String((body && body.status) || '').trim();
@@ -379,7 +496,7 @@ async function changeStatus(userId, sample, body) {
   return toResponse(sample);
 }
 
-/** Поля события как в api-contract.md. update/destroy модели здесь не вызываем. */
+/** Поля события для JSON. update/destroy для Event не вызываем (лента только INSERT). */
 function publicEvent(event) {
   return {
     id: event.id,
@@ -393,9 +510,9 @@ function publicEvent(event) {
 }
 
 /**
- * Лента образца по времени. Сначала проверяем, что sample есть:
- * иначе пустой [] выглядел бы как «истории нет», а не как 404.
- * Событий не было — всё равно 200 и []. Сортировка created_at ASC, при равенстве id.
+ * Лента sample_events по времени.
+ * Сначала проверяем, что образец есть (иначе 404, а не путаница с «истории нет»).
+ * Нет событий → [] и 200. Порядок created_at ASC, при равенстве id ASC.
  */
 async function getHistory(id) {
   const sample = await findByIdOrThrow(id);
