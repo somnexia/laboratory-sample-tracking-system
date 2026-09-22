@@ -46,6 +46,24 @@ const sampleIdParam = {
   schema: { type: 'integer', minimum: 1, example: 1 },
 };
 
+/** Path-параметр :id документа (не образца). */
+const documentIdParam = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  description: 'id строки sample_documents',
+  schema: { type: 'integer', minimum: 1, example: 10 },
+};
+
+/** Path-параметр :id оценки (не образца). */
+const ratingIdParam = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  description: 'id строки sample_ratings',
+  schema: { type: 'integer', minimum: 1, example: 3 },
+};
+
 const openapi = {
   openapi: '3.0.3',
   info: {
@@ -71,8 +89,8 @@ const openapi = {
       name: 'Samples',
       description: 'CRUD карточки, смена статуса, история, фильтры и сортировка списка',
     },
-    { name: 'Documents', description: 'Файлы образца (следующий этап документации)' },
-    { name: 'Ratings', description: 'Оценки 1–5 (следующий этап документации)' },
+    { name: 'Documents', description: 'Загрузка, список и удаление файлов образца (PDF / изображения)' },
+    { name: 'Ratings', description: 'Оценка качества 1–5: поставить, среднее, изменить и удалить свою' },
   ],
   components: {
     securitySchemes: {
@@ -232,6 +250,69 @@ const openapi = {
           old_value: { type: 'string', nullable: true, example: null },
           new_value: { type: 'string', nullable: true, example: 'SAM-2026-000124' },
           created_at: { type: 'string', format: 'date-time' },
+        },
+      },
+      SampleDocument: {
+        type: 'object',
+        description: 'Метаданные файла. Сами байты — GET file_path (статика /uploads/…)',
+        properties: {
+          id: { type: 'integer', example: 10 },
+          sample_id: { type: 'integer', example: 1 },
+          user_id: {
+            type: 'integer',
+            example: 1,
+            description: 'Кто загрузил (= владелец файла для DELETE)',
+          },
+          filename: { type: 'string', example: 'receipt.pdf' },
+          file_path: { type: 'string', example: '/uploads/1789-abc.pdf' },
+          created_at: { type: 'string', format: 'date-time' },
+        },
+      },
+      SampleRating: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer', example: 3 },
+          sample_id: { type: 'integer', example: 1 },
+          user_id: { type: 'integer', example: 1 },
+          score: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+          comment: {
+            type: 'string',
+            nullable: true,
+            example: 'Sample suitable for analysis',
+          },
+          created_at: { type: 'string', format: 'date-time' },
+        },
+      },
+      CreateRatingRequest: {
+        type: 'object',
+        required: ['score'],
+        properties: {
+          score: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+          comment: { type: 'string', nullable: true, example: 'Sample suitable for analysis' },
+        },
+      },
+      UpdateRatingRequest: {
+        type: 'object',
+        properties: {
+          score: { type: 'integer', minimum: 1, maximum: 5, example: 4 },
+          comment: {
+            type: 'string',
+            nullable: true,
+            example: 'Updated after visual check',
+          },
+        },
+      },
+      RatingAverage: {
+        type: 'object',
+        properties: {
+          sample_id: { type: 'integer', example: 1 },
+          average_rating: {
+            type: 'number',
+            nullable: true,
+            example: 4.5,
+            description: 'null, если оценок нет',
+          },
+          ratings_count: { type: 'integer', example: 2 },
         },
       },
     },
@@ -516,6 +597,178 @@ const openapi = {
             },
           },
           404: { description: 'Образец не найден', ...errorContent },
+        },
+      },
+    },
+    '/samples/{id}/documents': {
+      get: {
+        tags: ['Documents'],
+        summary: 'Список файлов образца',
+        description: 'Открытый. Пустой список — [] и 200, если образец есть.',
+        parameters: [sampleIdParam],
+        responses: {
+          200: {
+            description: 'Массив документов',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/SampleDocument' },
+                },
+              },
+            },
+          },
+          404: { description: 'Образец не найден', ...errorContent },
+        },
+      },
+      post: {
+        tags: ['Documents'],
+        summary: 'Загрузить PDF или изображение',
+        description: [
+          'multipart/form-data, поле формы обязательно называется file.',
+          'Только image/* и application/pdf, до 5 МБ.',
+          'Событие DOCUMENT_UPLOADED. Примеры: server/http/documents.http',
+        ].join(' '),
+        security: [{ bearerAuth: [] }],
+        parameters: [sampleIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['file'],
+                properties: {
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Файл (PDF / jpeg / png / gif / webp)',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Метаданные сохранённого файла',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SampleDocument' },
+              },
+            },
+          },
+          400: { description: 'Нет файла / неверный тип / слишком большой', ...errorContent },
+          401: { description: 'Нет JWT', ...errorContent },
+          404: { description: 'Образец не найден', ...errorContent },
+        },
+      },
+    },
+    '/documents/{id}': {
+      delete: {
+        tags: ['Documents'],
+        summary: 'Удалить свой файл',
+        description: 'Владелец — user_id загрузившего, не обязательно created_by образца. 204 без тела.',
+        security: [{ bearerAuth: [] }],
+        parameters: [documentIdParam],
+        responses: {
+          204: { description: 'Файл и строка удалены' },
+          401: { description: 'Нет JWT', ...errorContent },
+          403: { description: 'Чужой файл', ...errorContent },
+          404: { description: 'Документ не найден', ...errorContent },
+        },
+      },
+    },
+    '/samples/{id}/ratings': {
+      post: {
+        tags: ['Ratings'],
+        summary: 'Поставить оценку 1–5',
+        description: 'Один пользователь — одна оценка на образец. Повтор → 400. Событие RATING_ADDED.',
+        security: [{ bearerAuth: [] }],
+        parameters: [sampleIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateRatingRequest' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Оценка создана',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SampleRating' },
+              },
+            },
+          },
+          400: { description: 'score не 1–5 / уже оценивали', ...errorContent },
+          401: { description: 'Нет JWT', ...errorContent },
+          404: { description: 'Образец не найден', ...errorContent },
+        },
+      },
+    },
+    '/samples/{id}/rating': {
+      get: {
+        tags: ['Ratings'],
+        summary: 'Среднее и число оценок',
+        description: 'Открытый. Без оценок: average_rating null, ratings_count 0, всё равно 200.',
+        parameters: [sampleIdParam],
+        responses: {
+          200: {
+            description: 'Сводка',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RatingAverage' },
+              },
+            },
+          },
+          404: { description: 'Образец не найден', ...errorContent },
+        },
+      },
+    },
+    '/ratings/{id}': {
+      put: {
+        tags: ['Ratings'],
+        summary: 'Изменить свою оценку',
+        description: 'Только user_id этой строки. Событие RATING_UPDATED.',
+        security: [{ bearerAuth: [] }],
+        parameters: [ratingIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateRatingRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Обновлённая оценка',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SampleRating' },
+              },
+            },
+          },
+          400: { description: 'score вне 1–5', ...errorContent },
+          401: { description: 'Нет JWT', ...errorContent },
+          403: { description: 'Чужая оценка', ...errorContent },
+          404: { description: 'Оценка не найдена', ...errorContent },
+        },
+      },
+      delete: {
+        tags: ['Ratings'],
+        summary: 'Удалить свою оценку',
+        description: 'После DELETE тот же пользователь может снова POST. Событие RATING_DELETED.',
+        security: [{ bearerAuth: [] }],
+        parameters: [ratingIdParam],
+        responses: {
+          204: { description: 'Оценка удалена' },
+          401: { description: 'Нет JWT', ...errorContent },
+          403: { description: 'Чужая оценка', ...errorContent },
+          404: { description: 'Оценка не найдена', ...errorContent },
         },
       },
     },
