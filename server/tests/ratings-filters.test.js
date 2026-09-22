@@ -58,3 +58,7 @@ test("USA list by decline in average rate", async () => {
 
 });
 
+const db = require('../models');
+afterAll(async () => {
+  await db.sequelize.close();
+});

@@ -19,3 +19,8 @@ describe('образцы', () => {
     expect(response.status).toBe(401);
   });
 });
+
+const db = require('../models');
+afterAll(async () => {
+  await db.sequelize.close();
+});
