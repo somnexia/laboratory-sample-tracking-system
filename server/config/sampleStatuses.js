@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Жизненный цикл образца (фаза 1.5, используется в фазе 5.1–5.4).
+ * Жизненный цикл образца.
  *
  * Одна линия, без веток IN_TRANSIT и QUALITY_FAILED.
  * POST /samples всегда ставит DEFAULT_STATUS (RECEIVED).

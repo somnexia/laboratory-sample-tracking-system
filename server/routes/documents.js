@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * /documents — только удаление своего файла (фаза 6).
+ * /documents — только удаление своего файла.
  *
  * Список и загрузка живут под /samples/:id/documents: файл всегда про образец.
  * DELETE вынесен сюда, как Photo в ТЗ: /photos/:id, не /landmarks/:id/photos/:id.

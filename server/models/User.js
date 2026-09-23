@@ -10,11 +10,11 @@ const BCRYPT_ROUNDS = 10;
  *
  * Хеш пароля: хуки beforeCreate / beforeUpdate, в БД никогда не лежит plaintext.
  * Ответы API: toJSON() вырезает password, даже если контроллер сделает res.json(user).
- * Это закрывает пункт ТЗ «не отдавать пароль» (фаза 3.6).
+ * В ответах API пароля нет.
  */
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    /** Связи зарегистрирует models/index.js (фаза 2.8). */
+    /** Связи регистрирует models/index.js. */
     static associate(models) {
       User.hasMany(models.Sample, { foreignKey: 'created_by', as: 'samples' });
       User.hasMany(models.SampleDocument, { foreignKey: 'user_id', as: 'documents' });

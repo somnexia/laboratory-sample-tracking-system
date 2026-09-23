@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Повторно безопасный seed (фаза 2.10).
+ * Повторно безопасный seed.
  *
  * 2 пользователя: user1, user2 (пароль password123, как в api-contract.md).
  * 5 образцов с разными country / status / type.

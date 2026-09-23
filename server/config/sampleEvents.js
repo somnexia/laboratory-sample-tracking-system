@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Значения sample_events.action (фаза 1.5).
+ * Значения sample_events.action.
  *
  * Строка события пишется только INSERT-ом из контроллера, который уже
  * изменил sample / document / rating. Маршрутов PUT/PATCH/DELETE /events нет.
@@ -10,10 +10,10 @@
  * SAMPLE_UPDATED     — PUT /samples/:id, location не менялся
  * LOCATION_CHANGED   — PUT /samples/:id, изменилось location
  * STATUS_CHANGED     — PATCH /samples/:id/status
- * Чтение ленты        — GET /samples/:id/history (фаза 5). Менять события нельзя.
- * DOCUMENT_UPLOADED  — POST /samples/:id/documents (фаза 6)
+ * Чтение ленты        — GET /samples/:id/history. Менять события нельзя.
+ * DOCUMENT_UPLOADED  — POST /samples/:id/documents
  * DOCUMENT_DELETED   — DELETE /documents/:id
- * RATING_ADDED       — POST /samples/:id/ratings (фаза 7)
+ * RATING_ADDED       — POST /samples/:id/ratings
  * RATING_UPDATED     — PUT /ratings/:id
  * RATING_DELETED     — DELETE /ratings/:id
  */

@@ -2,7 +2,7 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 4–5: CRUD карточки, PATCH статуса, GET /samples/:id/history.
+# Образцы: CRUD карточки, PATCH статуса, GET /samples/:id/history.
 # Сначала Login user1 / user2, потом Create / PUT / PATCH / History.
 
 ### Login seed user1
@@ -171,7 +171,7 @@ Authorization: Bearer {{login.response.body.token}}
 GET {{baseUrl}}/samples/{{createSample.response.body.id}}
 
 ############################################################
-# PATCH status — первая половина фазы 5 (карта переходов)
+# PATCH status — карта переходов статуса
 # Не используйте createSample выше: его DELETE уже снял запись.
 ############################################################
 

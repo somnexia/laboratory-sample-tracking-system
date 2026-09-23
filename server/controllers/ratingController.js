@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * HTTP оценок (фаза 7).
+ * HTTP оценок.
  *
  * POST /samples/:id/ratings и GET /samples/:id/rating — в роутере samples.
  * PUT/DELETE /ratings/:id — JWT + ownerOnly по user_id оценки.

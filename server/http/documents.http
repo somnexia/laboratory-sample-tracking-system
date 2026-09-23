@@ -2,7 +2,7 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 6 упрощённая: POST/GET документов и DELETE своего файла.
+# Документы: POST и GET списка, DELETE своего файла.
 # Поле формы обязательно называется file (multipart/form-data).
 # Путь < ./tiny.pdf — относительно этой папки server/http/.
 

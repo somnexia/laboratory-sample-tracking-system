@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Реестр моделей Sequelize (фаза 2.8).
+ * Реестр моделей Sequelize.
  *
  * Подключение к MySQL — config/database.js.
  * Здесь: загрузить все *.js в этой папке, вызвать associate(),

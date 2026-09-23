@@ -2,7 +2,7 @@
 @seedEmail = user1@example.com
 @seedPassword = password123
 
-# Фаза 7: POST/GET среднего и PUT/DELETE своей оценки.
+# Оценки: POST и GET среднего, PUT и DELETE своей оценки.
 # Seed: user1 уже оценил образец #1 — повторный POST на #1 даст 400.
 
 ### Login seed user1

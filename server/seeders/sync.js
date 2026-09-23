@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Создание / подгонка таблиц (фаза 2.9).
+ * Создание и подгонка таблиц по моделям Sequelize.
  *
  * В учёбе: sequelize.sync({ alter: true }).
  * Для сдачи и production лучше миграции в server/migrations/ — sync alter

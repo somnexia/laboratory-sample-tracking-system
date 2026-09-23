@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * HTTP документов (фаза 6, упрощённая).
+ * HTTP документов.
  *
  * POST: authRequired → образец существует → multer → сервис.
  * GET список — открытый. DELETE /documents/:id — JWT + user_id файла (не created_by образца).
